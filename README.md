@@ -1,3 +1,4 @@
 # LegalMate.pk
 FYP
-starting data collection on 1/10/25
+starting data collection - 1/10/25
+installing android studio and postresql - 04/10/2025
