@@ -63,4 +63,60 @@ export const createSession = async (userId, req, res) => {
   }
 };
 
-/
+export const refreshAccessToken = async (req, res) => {
+  try {
+    const token = req.cookies.refresh_token;
+    if (!token) return res.status(401).json({ error: "Missing refresh token" });
+
+    // Find candidate sessions which are not revoked and not expired.
+    const candidates = await Session.find({
+      revoked: false,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!candidates || candidates.length === 0)
+      return res.status(401).json({ error: "Invalid session" });
+
+    // We must find the session where the stored hash matches the provided token
+    let matchedSession = null;
+    for (const s of candidates) {
+      try {
+        const valid = await argon2.verify(s.refreshTokenHash, token);
+        if (valid) {
+          matchedSession = s;
+          break;
+        }
+      } catch (e) {
+        // ignore verify errors for this candidate and continue
+      }
+    }
+
+    if (!matchedSession) return res.status(401).json({ error: "Invalid refresh token" });
+
+    // Create a new access token containing the session id (sid)
+    const newAccessToken = generateAccessToken(matchedSession.user.toString(), matchedSession._id.toString());
+    res.json({ accessToken: newAccessToken });
+  } catch (err) {
+    console.error("refreshAccessToken error:", err);
+    res.status(401).json({ error: "Failed to refresh token" });
+  }
+};
+
+// ----------------- Logout (revoke session) -----------------
+export const logout = async (req, res) => {
+  try {
+    // middleware verifySession ensures req.session exists
+    if (req.session) {
+      req.session.revoked = true;
+      await req.session.save();
+    } else if (req.sessionId) {
+      await Session.findByIdAndUpdate(req.sessionId, { revoked: true });
+    }
+
+    res.clearCookie("refresh_token", { path: "/api/sessions/refresh" });
+    return res.json({ ok: true, message: "Logged out successfully" });
+  } catch (err) {
+    console.error("logout error:", err);
+    return res.status(500).json({ error: "Server error during logout" });
+  }
+};
