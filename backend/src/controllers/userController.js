@@ -1,4 +1,4 @@
-file content paste each function one by one.
+
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import argon2 from 'argon2';
@@ -138,6 +138,74 @@ const updateProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
+};
+// ---------- Password management ----------
+const changePassword = async (req, res) => {
+  try {
+    const { old_password, new_password } = req.body;
+    if (!old_password || !new_password) return res.status(400).json({ error: 'Missing fields' });
+
+    const user = await User.findById(req.user._id);
+    const match = await argon2.verify(user.password_hash, old_password);
+    if (!match) return res.status(401).json({ error: 'Old password incorrect' });
+
+    user.password_hash = await argon2.hash(new_password);
+    await user.save();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Missing email' });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) return res.status(200).json({ ok: true }); // don't reveal existence
+
+    const token = crypto.randomBytes(20).toString('hex');
+    user.password_reset = {
+      token,
+      expires_at: new Date(Date.now() + 1000 * 60 * 60) // 1 hour
+    };
+    await user.save();
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { email, token, new_password } = req.body;
+    if (!email || !token || !new_password) return res.status(400).json({ error: 'Missing fields' });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || !user.password_reset?.token) return res.status(400).json({ error: 'Invalid token' });
+
+    if (user.password_reset.expires_at < new Date()) return res.status(400).json({ error: 'Token expired' });
+    if (user.password_reset.token !== token) return res.status(400).json({ error: 'Invalid token' });
+
+    user.password_hash = await argon2.hash(new_password);
+    user.password_reset = { token: null, expires_at: null };
+    await user.save();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+export default {
+  signup,
+  signin,
+  getProfile,
+  updateProfile,
+  changePassword,
+  requestPasswordReset,
+  resetPassword
 };
 
 
