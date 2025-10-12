@@ -107,4 +107,37 @@ const signin = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+// ---------- Profile routes ----------
+const getProfile = async (req, res) => {
+  const user = req.user;
+  res.json({
+    id: user._1d ?? user._id, // fallback in case of different naming
+    email: user.email,
+    email_verified: user.email_verified,
+    phone: user.phone,
+    profile: user.profile,
+    settings: user.settings,
+    preferred_language: user.preferred_language,
+    role: user.role,
+    created_at: user.created_at
+  });
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const { profile, settings, preferred_language } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (profile) user.profile = { ...user.profile.toObject(), ...profile };
+    if (settings) user.settings = { ...user.settings, ...settings };
+    if (preferred_language) user.preferred_language = preferred_language;
+
+    await user.save();
+    res.json({ ok: true, profile: user.profile });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 
