@@ -1,0 +1,7 @@
+Model: /content/drive/MyDrive/LegalMateData/qwen2_stage3/qwen2_stage3_legalUQNA_finetuned
+Dataset: /content/drive/MyDrive/LegalMateData/trainingData/legalUQA_supreme_bilingual.parquet
+Saved model: /content/drive/MyDrive/LegalMateData/qwen2_stage4/qwen2_stage4_supremecourtsJudgments_finetuned
+Training date: 20251018_175623
+Epochs: 2
+Learning rate: 0.0002
+Batch size: 1

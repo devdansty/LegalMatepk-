@@ -1,0 +1,4 @@
+Model: Qwen/Qwen2-0.5B
+Dataset: /content/drive/MyDrive/LegalMateData/trainingData/filtered_property_laws.json
+Saved model: /content/drive/MyDrive/LegalMateData/qwen2_stage1/qwen2_stage1_legal_finetuned
+Training date: 20251014_082545
