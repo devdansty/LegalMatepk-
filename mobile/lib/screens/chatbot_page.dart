@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
+import 'signin_screen.dart';
 
 class ChatBotPage extends StatefulWidget {
   const ChatBotPage({super.key});
@@ -180,12 +181,83 @@ class _ChatBotPageState extends State<ChatBotPage> {
         centerTitle: true,
         backgroundColor: darkGreen,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_forever, color: Colors.white),
-            onPressed: _clearChat,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) async {
+              switch (value) {
+                case 'logout':
+                  setState(() => _isLoading = true);
+
+                  try {
+                    // read access token from secure storage
+                    final accessToken = await secureStorage.read(key: 'accessToken');
+
+                    final headers = <String, String>{
+                      'Content-Type': 'application/json',
+                      if (accessToken != null && accessToken.isNotEmpty)
+                        'Authorization': 'Bearer $accessToken',
+                    };
+
+                    final response = await http.post(
+                      Uri.parse('http://192.168.100.147:3000/api/sessions/logout'),
+                      headers: headers,
+                    );
+
+                    if (response.statusCode == 200) {
+                      if (mounted) {
+                        // clear chat messages on logout (optional)
+                        _messages.clear();
+
+                        // delete stored access token
+                        await secureStorage.delete(key: 'accessToken');
+
+                        setState(() => _isLoading = false);
+
+                        // Navigate to SignInScreen and remove previous routes
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const SignInScreen()),
+                              (route) => false,
+                        );
+                      }
+                    } else {
+                      setState(() => _isLoading = false);
+                      // if server sends JSON, try to show its error message
+                      String serverMsg = 'Logout failed: ${response.statusCode}';
+                      try {
+                        final Map<String, dynamic> body = jsonDecode(response.body);
+                        if (body['error'] != null) serverMsg = body['error'].toString();
+                      } catch (_) {}
+                      _showError(serverMsg);
+                    }
+                  } catch (e) {
+                    setState(() => _isLoading = false);
+                    _showError('Network error during logout');
+                  }
+                  break;
+                case 'settings':
+                  _showError('Settings clicked'); // dummy action
+                  break;
+
+                case 'profile':
+                  _showError('Profile clicked'); // dummy action
+                  break;
+
+                case 'chat':
+                  _showError('Chat clicked'); // dummy action
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem(value: 'logout', child: Text('Logout')),
+              const PopupMenuItem(value: 'settings', child: Text('Settings')),
+              const PopupMenuItem(value: 'profile', child: Text('Profile')),
+              const PopupMenuItem(value: 'chat', child: Text('Chat')),
+            ],
           )
         ],
       ),
+
+
       body: Column(
         children: [
           // Top error banner (auto-dismisses)
