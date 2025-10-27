@@ -1,0 +1,38 @@
+model tuned one by one with one data set per tune
+qwen 2 stage 1 actaul legal data from pakistan law site
+qwen 2 stage 2 uqna data
+qwen 2 stage 3 Lgna data
+qwen 2 stage 4 supremecourt data
+
+✅ When You Should Use supreme courts judgements 
+
+If your goal is to build a Legal Urdu (or bilingual) advisory model, then yes — you should absolutely use them.
+
+They are gold for:
+
+Legal reasoning (learning how judges argue, cite, and conclude).
+
+Legal language style (formal Urdu/English hybrid).
+
+Context understanding (how law applies to real cases).
+
+Grounding for advice generation (model learns what is legally correct, not just what “sounds right”).
+
+If your future chatbot will:
+
+Explain court decisions,
+
+Provide summaries of judgments,
+
+Or assist in legal document drafting,
+
+then these documents are extremely valuable training data — especially after some preprocessing.
+
+🧩 What happened
+
+You fine-tuned Qwen/Qwen2-0.5B (base), which is the raw language model.
+That model isn’t trained for chat or instruction following — it just continues text.
+So when you ask “hello” or “what is property law?”, it doesn’t know that it should respond conversationally.
+That’s why you get long, irrelevant stories or summaries.
+
+For chatbots, you always want to start from a model that already understands dialogue format and instruction style.
