@@ -1,7 +1,7 @@
 import pandas as pd
 
 # 👇 Replace with your file path
-file_path = r"E:\CODE\FYP\docs\dataForTaining\legalUQA.parquet"
+file_path = r"E:\CODE\FYP\application\docs\dataForTaining-chatBot\legalUQA.parquet"
 
 # Read the file into a DataFrame
 df = pd.read_parquet(file_path)
@@ -10,5 +10,5 @@ df = pd.read_parquet(file_path)
 print("✅ File loaded successfully!")
 print("🧱 Columns:", df.columns.tolist())
 print("📊 Total rows:", len(df))
-print("\n🔹 Preview of first 3 rows:")
-print(df.head(3))
+print("\n🔹 Preview of first 5 rows:")
+print(df.head(5))
