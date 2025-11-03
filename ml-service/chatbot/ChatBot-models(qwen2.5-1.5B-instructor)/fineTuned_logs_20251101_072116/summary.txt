@@ -1,0 +1,7 @@
+Model: Qwen/Qwen2.5-1.5B-Instruct
+Output dir: /content/drive/MyDrive/LegalMateDat/qwen2.5/fineTuned
+Training date: 20251101_072116
+Epochs: 1
+Learning rate: 0.0002
+Batch size: 1
+Gradient Accumulation: 8

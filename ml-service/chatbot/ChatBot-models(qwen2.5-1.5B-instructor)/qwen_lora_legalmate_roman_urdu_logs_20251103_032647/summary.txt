@@ -1,0 +1,10 @@
+Base Model: Qwen/Qwen2.5-1.5B-Instruct
+Previous LoRA: /content/drive/MyDrive/LegalMateDat/qwen2.5/fineTuned
+Roman Urdu Dataset: /content/drive/MyDrive/LegalMateData/qwen2.5/trainingData/roman_urdu_qa.jsonl
+Saved Model: /content/drive/MyDrive/LegalMateDat/qwen2.5/qwen_lora_legalmate_roman_urdu
+Epochs: 1
+Learning Rate: 0.0002
+Batch Size: 1
+Gradient Accumulation: 8
+Max Seq Len: 512
+Training Date: 20251103_032647
