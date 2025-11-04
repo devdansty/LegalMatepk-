@@ -12,8 +12,8 @@ import torch
 import uvicorn
 
 # -------- CONFIGURATION --------
-BASE_MODEL = ""
-LORA_PATH = ""   # path to your latest fine-tuned model
+BASE_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
+LORA_PATH = r"E:\CODE\FYP\application\ml-service\chatbot\ChatBot-models(qwen2.5-1.5B-instructor)\qwen_lora_legalmate_roman_urdu"   # path to your latest fine-tuned model
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -74,17 +74,21 @@ Now, continue the conversation accordingly.
 
 @app.post("/generate")
 async def generate_text(query: Query):
-    """
-    Generate a response for a given prompt.
-    """
     try:
-        # Combine system prompt with user input
-        full_prompt = f"{SYSTEM_PROMPT}\n\nUser: {query.prompt}\nLegalMate:"
-        
-        inputs = tokenizer(full_prompt, return_tensors="pt").to(DEVICE)
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": query.prompt}
+        ]
+
+        # Let tokenizer handle correct formatting
+        inputs = tokenizer.apply_chat_template(
+            messages,
+            return_tensors="pt",
+            add_generation_prompt=True
+        ).to(DEVICE)
 
         with torch.no_grad():
-            output = model.generate(
+            outputs = model.generate(
                 **inputs,
                 max_new_tokens=query.max_new_tokens,
                 temperature=query.temperature,
@@ -93,9 +97,12 @@ async def generate_text(query: Query):
                 pad_token_id=tokenizer.eos_token_id
             )
 
-        response = tokenizer.decode(output[0], skip_special_tokens=True)
-        # Remove system prompt text if repeated
-        response = response.replace(SYSTEM_PROMPT.strip(), "").strip()
+        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        # Only keep the assistant's reply (after system+user)
+        if "LegalMate:" in response:
+            response = response.split("LegalMate:")[-1].strip()
+
         return {"response": response}
 
     except Exception as e:
