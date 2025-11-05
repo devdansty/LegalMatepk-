@@ -22,6 +22,16 @@ class _ChatBotPageState extends State<ChatBotPage> {
   bool _isListening = false;
   bool _isLoading = false;
 
+  // <<<<<<<<<<<<<<<<< IMPORTANT: change this to your Node server URL >>>>>>>>>>>>>>>>>
+  // - Android emulator: use http://10.0.2.2:3000/api/chat
+  // - iOS simulator: use http://localhost:3000/api/chat
+  // - Physical device: use your machine LAN IP e.g. http://192.168.1.10:3000/api/chat
+  //
+  // The Node proxy response shape assumed here:
+  // { "success": true, "reply": "model reply text", "extra": {...} }
+  final String nodeApiUrl = 'http://192.168.0.108:3000/api/chatbot';
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
@@ -33,48 +43,97 @@ class _ChatBotPageState extends State<ChatBotPage> {
     _controller.clear();
     _scrollToBottom();
 
-    const String apiUrl = "https://dummy-legalmate-node-api.com/chat";
-
     try {
-      await Future.delayed(const Duration(seconds: 1));
-      final response = await http.post(
-        Uri.parse(apiUrl),
+      // small UX delay (optional)
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final response = await http
+          .post(
+        Uri.parse(nodeApiUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"message": message}),
-      );
+        body: jsonEncode({"message": message, "session_id": "session-1"}),
+      )
+          .timeout(const Duration(seconds: 120));
 
-      String botReply = "This is a sample LegalMate AI response.";
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
 
-      setState(() {
-        _messages.add({"role": "bot", "text": botReply});
-        _isLoading = false;
-      });
+        // Node proxy: expected fields: success, reply, extra
+        final bool ok = data['success'] == true || data['success'] == null;
+        final String botReply = (data['reply'] ?? data['message'] ?? '').toString();
 
-      _scrollToBottom();
-      _speak(botReply);
+        if (ok && botReply.isNotEmpty) {
+          setState(() {
+            _messages.add({"role": "bot", "text": botReply});
+            _isLoading = false;
+          });
+          _scrollToBottom();
+          await _speak(botReply);
+        } else {
+          // fallback when shape differs or no reply
+          final fallback = data['reply']?.toString() ??
+              data['message']?.toString() ??
+              'Sorry, I did not get a response.';
+          setState(() {
+            _messages.add({"role": "bot", "text": fallback});
+            _isLoading = false;
+          });
+          _scrollToBottom();
+          await _speak(fallback);
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _messages.add({"role": "bot", "text": "Server error: ${response.statusCode}"});
+        });
+        _scrollToBottom();
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
+        _messages.add({"role": "bot", "text": "Network error: ${e.toString()}"});
       });
+      _scrollToBottom();
     }
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 300), () {
+    // scroll to the end (bottom). list is natural order from top -> bottom, so animate to max.
+    // Use a small delay so UI finished building the new tile.
+    Future.delayed(const Duration(milliseconds: 200), () {
       if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        final position = _scrollController.position.maxScrollExtent;
+        _scrollController.animateTo(
+          position,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
 
   Future<void> _startListening() async {
-    bool available = await _speech.initialize();
+    bool available = await _speech.initialize(
+      onStatus: (status) {
+        // optional: handle status updates
+        // print('STT status: $status');
+      },
+      onError: (error) {
+        // optional: handle errors
+        // print('STT error: $error');
+      },
+    );
     if (available) {
       setState(() => _isListening = true);
       _speech.listen(onResult: (result) {
         setState(() {
           _controller.text = result.recognizedWords;
         });
+      });
+    } else {
+      // STT unavailable: inform user or fallback
+      setState(() {
+        _messages.add({"role": "bot", "text": "Speech recognition is not available on this device."});
       });
     }
   }
@@ -85,13 +144,27 @@ class _ChatBotPageState extends State<ChatBotPage> {
   }
 
   Future<void> _speak(String text) async {
-    await _flutterTts.speak(text);
+    try {
+      await _flutterTts.stop();
+      await _flutterTts.speak(text);
+    } catch (e) {
+      // ignore TTS errors silently or show message if you want
+    }
   }
 
   void _clearChat() {
     setState(() {
       _messages.clear();
     });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    _speech.stop();
+    _flutterTts.stop();
+    super.dispose();
   }
 
   @override
@@ -191,6 +264,8 @@ class _ChatBotPageState extends State<ChatBotPage> {
               Expanded(
                 child: TextField(
                   controller: _controller,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (text) => _sendMessage(text),
                   decoration: const InputDecoration(
                     hintText: "Ask LegalMate...",
                     border: InputBorder.none,
