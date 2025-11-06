@@ -48,10 +48,10 @@ class SignInScreen extends StatelessWidget {
                 },
                 child: const Text("Sign In"),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               OutlinedButton.icon(
                 onPressed: () {},
-                icon: Image.asset('google.png', height: 22),
+                icon: Image.asset('assets/google.png', height: 22),
                 label: const Text("Sign in with Google"),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF006400),

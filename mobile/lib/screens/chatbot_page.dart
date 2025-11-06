@@ -1,3 +1,5 @@
+// dart
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -21,16 +23,20 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
   bool _isListening = false;
   bool _isLoading = false;
+  String _errorMessage = ''; // new error state
+  Timer? _errorTimer; // timer to auto-hide banner
 
   // <<<<<<<<<<<<<<<<< IMPORTANT: change this to your Node server URL >>>>>>>>>>>>>>>>>
-  // - Android emulator: use http://10.0.2.2:3000/api/chat
-  // - iOS simulator: use http://localhost:3000/api/chat
-  // - Physical device: use your machine LAN IP e.g. http://192.168.1.10:3000/api/chat
-  //
-  // The Node proxy response shape assumed here:
-  // { "success": true, "reply": "model reply text", "extra": {...} }
   final String nodeApiUrl = 'http://192.168.0.108:3000/api/chatbot';
   // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+  void _showError(String msg, {Duration duration = const Duration(seconds: 4)}) {
+    _errorTimer?.cancel();
+    setState(() => _errorMessage = msg);
+    _errorTimer = Timer(duration, () {
+      if (mounted) setState(() => _errorMessage = '');
+    });
+  }
 
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
@@ -38,13 +44,13 @@ class _ChatBotPageState extends State<ChatBotPage> {
     setState(() {
       _messages.add({"role": "user", "text": message});
       _isLoading = true;
+      _errorMessage = ''; // clear previous errors when sending
     });
 
     _controller.clear();
     _scrollToBottom();
 
     try {
-      // small UX delay (optional)
       await Future.delayed(const Duration(milliseconds: 200));
 
       final response = await http
@@ -53,12 +59,11 @@ class _ChatBotPageState extends State<ChatBotPage> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"message": message, "session_id": "session-1"}),
       )
-          .timeout(const Duration(seconds: 120));
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
 
-        // Node proxy: expected fields: success, reply, extra
         final bool ok = data['success'] == true || data['success'] == null;
         final String botReply = (data['reply'] ?? data['message'] ?? '').toString();
 
@@ -66,40 +71,39 @@ class _ChatBotPageState extends State<ChatBotPage> {
           setState(() {
             _messages.add({"role": "bot", "text": botReply});
             _isLoading = false;
+            _errorMessage = '';
           });
           _scrollToBottom();
-          await _speak(botReply);
+          // auto TTS disabled: user must tap play button to hear replies
         } else {
-          // fallback when shape differs or no reply
           final fallback = data['reply']?.toString() ??
               data['message']?.toString() ??
               'Sorry, I did not get a response.';
           setState(() {
             _messages.add({"role": "bot", "text": fallback});
             _isLoading = false;
+            _errorMessage = '';
           });
           _scrollToBottom();
-          await _speak(fallback);
+          // auto TTS disabled
         }
       } else {
         setState(() {
           _isLoading = false;
-          _messages.add({"role": "bot", "text": "Server error: ${response.statusCode}"});
         });
+        _showError("Server error: ${response.statusCode}");
         _scrollToBottom();
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _messages.add({"role": "bot", "text": "Network error: ${e.toString()}"});
       });
+      _showError("Network error: ${e.toString()}");
       _scrollToBottom();
     }
   }
 
   void _scrollToBottom() {
-    // scroll to the end (bottom). list is natural order from top -> bottom, so animate to max.
-    // Use a small delay so UI finished building the new tile.
     Future.delayed(const Duration(milliseconds: 200), () {
       if (_scrollController.hasClients) {
         final position = _scrollController.position.maxScrollExtent;
@@ -114,14 +118,8 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
   Future<void> _startListening() async {
     bool available = await _speech.initialize(
-      onStatus: (status) {
-        // optional: handle status updates
-        // print('STT status: $status');
-      },
-      onError: (error) {
-        // optional: handle errors
-        // print('STT error: $error');
-      },
+      onStatus: (status) {},
+      onError: (error) {},
     );
     if (available) {
       setState(() => _isListening = true);
@@ -131,10 +129,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
         });
       });
     } else {
-      // STT unavailable: inform user or fallback
-      setState(() {
-        _messages.add({"role": "bot", "text": "Speech recognition is not available on this device."});
-      });
+      _showError("Speech recognition is not available on this device.");
     }
   }
 
@@ -148,13 +143,14 @@ class _ChatBotPageState extends State<ChatBotPage> {
       await _flutterTts.stop();
       await _flutterTts.speak(text);
     } catch (e) {
-      // ignore TTS errors silently or show message if you want
+      // ignore
     }
   }
 
   void _clearChat() {
     setState(() {
       _messages.clear();
+      _errorMessage = '';
     });
   }
 
@@ -164,6 +160,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
     _scrollController.dispose();
     _speech.stop();
     _flutterTts.stop();
+    _errorTimer?.cancel();
     super.dispose();
   }
 
@@ -174,11 +171,11 @@ class _ChatBotPageState extends State<ChatBotPage> {
     const Color bubbleGreen = Color(0xFF006400);
 
     return Scaffold(
-      backgroundColor: offWhite, // ✅ off-white background
+      backgroundColor: offWhite,
       appBar: AppBar(
         title: const Text(
           'LegalMate Chatbot',
-          style: TextStyle(color: Colors.white), // ✅ white heading
+          style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,
         backgroundColor: darkGreen,
@@ -191,6 +188,36 @@ class _ChatBotPageState extends State<ChatBotPage> {
       ),
       body: Column(
         children: [
+          // Top error banner (auto-dismisses)
+          if (_errorMessage.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.red.shade600,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _errorMessage,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () {
+                        _errorTimer?.cancel();
+                        setState(() => _errorMessage = '');
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -198,28 +225,53 @@ class _ChatBotPageState extends State<ChatBotPage> {
               itemBuilder: (context, index) {
                 final message = _messages[index];
                 final isUser = message["role"] == "user";
+                final text = message["text"] ?? "";
+                final innerPadding = isUser
+                    ? const EdgeInsets.all(12)
+                    : const EdgeInsets.fromLTRB(12, 12, 44, 12); // space for play button
+
                 return Container(
                   padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                   alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                    decoration: BoxDecoration(
-                      color: isUser ? bubbleGreen : Colors.grey.shade300,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
-                        bottomLeft: isUser ? const Radius.circular(16) : const Radius.circular(0),
-                        bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(16),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        padding: innerPadding,
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                        decoration: BoxDecoration(
+                          color: isUser ? bubbleGreen : Colors.grey.shade300,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(16),
+                            topRight: const Radius.circular(16),
+                            bottomLeft: isUser ? const Radius.circular(16) : const Radius.circular(0),
+                            bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          text,
+                          style: TextStyle(
+                            color: isUser ? Colors.white : Colors.black87,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      message["text"] ?? "",
-                      style: TextStyle(
-                        color: isUser ? Colors.white : Colors.black87,
-                        fontSize: 16,
-                      ),
-                    ),
+
+                      // Play button for bot messages (small, top-right)
+                      if (!isUser && text.isNotEmpty)
+                        Positioned(
+                          top: -6,
+                          right: -6,
+                          child: GestureDetector(
+                            onTap: () => _speak(text),
+                            child: CircleAvatar(
+                              radius: 14,
+                              backgroundColor: bubbleGreen,
+                              child: const Icon(Icons.play_arrow, size: 16, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 );
               },
@@ -245,7 +297,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
         padding: const EdgeInsets.all(8),
         child: Container(
           decoration: BoxDecoration(
-            color: offWhite, // ✅ off-white bottom bar
+            color: offWhite,
             borderRadius: BorderRadius.circular(25),
             boxShadow: [
               BoxShadow(
@@ -264,12 +316,14 @@ class _ChatBotPageState extends State<ChatBotPage> {
               Expanded(
                 child: TextField(
                   controller: _controller,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (text) => _sendMessage(text),
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  minLines: 1,
+                  maxLines: null, // allows the TextField to grow vertically and wrap text
                   decoration: const InputDecoration(
                     hintText: "Ask LegalMate...",
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                   ),
                 ),
               ),
