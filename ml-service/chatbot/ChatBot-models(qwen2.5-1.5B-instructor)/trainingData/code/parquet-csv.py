@@ -1,11 +1,10 @@
 import pandas as pd
 import os
 
-base = r"E:\CODE\FYP\application\ml-service\chatbot\ChatBot-models(qwen2.5-1.5B-instructor)\trainingData\raw\DATA"
+base = r"E:\CODE\FYP\application\docs\dataForTaining-chatBot"
 
 files = [
-    ("legalUQA.parquet", "legalUQA.csv"),
-    ("legalUQA_supreme_bilingual.parquet", "legalUQA_supreme_bilingual.csv")
+   ("legalUQA.parquet", "legalUQA.csv")
 ]
 
 for src, dest in files:
