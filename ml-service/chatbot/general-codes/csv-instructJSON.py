@@ -82,8 +82,7 @@ def convert_to_instruction_style(input_csv, output_jsonl):
 
     try:
         with open(output_jsonl, "w", encoding="utf-8") as f:
-            for item in dataset:
-                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+            json.dump(dataset, f, ensure_ascii=False, indent=4)
 
         print(f"\n🎉 Successfully created: {output_jsonl}")
         print(f"✔ Valid samples: {len(dataset)}")
@@ -95,4 +94,6 @@ def convert_to_instruction_style(input_csv, output_jsonl):
 
 
 # ---------------- Run Example ----------------
-# convert_to_instruction_style("legalUQA.csv", "legalmate_instruct.jsonl")
+legalUQA_csv = r"E:\CODE\FYP\application\docs\dataForTaining-chatBot\originalLegalUQA.csv"
+legalmate_instruct_jsonl = r"E:\CODE\FYP\application\docs\dataForTaining-chatBot\originalLegalUQA-instruct.jsonl"
+convert_to_instruction_style(legalUQA_csv, legalmate_instruct_jsonl)

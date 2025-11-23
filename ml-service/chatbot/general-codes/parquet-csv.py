@@ -4,7 +4,7 @@ import os
 base = r"E:\CODE\FYP\application\docs\dataForTaining-chatBot"
 
 files = [
-   ("originalLegalUQA.parquet", "originalLegalUQA.csv")
+   ("original-SCP-Judgements.parquet", "original-SCP-Judgements.csv")
 ]
 
 for src, dest in files:
