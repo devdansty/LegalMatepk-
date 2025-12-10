@@ -86,7 +86,7 @@ def call_openai_api(api_key: str, prompt: str) -> str:
         print(f"Error calling OpenAI API: {e}")
         return ""
 
-def call_gemini_api(api_key: str, prompt: str, model_name: str = "gemini-2.0-flash", retries: int = 5) -> str:
+def call_gemini_api(api_key: str, prompt: str, model_name: str = "gemini-2.0-flash", retries: int = 10) -> str:
     """Calls the Google Gemini API with retries for rate limits."""
     # Using v1beta as it supports newer models like gemini-2.0-flash
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
@@ -103,8 +103,17 @@ def call_gemini_api(api_key: str, prompt: str, model_name: str = "gemini-2.0-fla
         except requests.exceptions.RequestException as e:
             if hasattr(e, 'response') and e.response is not None:
                 if e.response.status_code == 429:
-                    wait_time = 2 ** (attempt + 1) + random.uniform(0, 1)
-                    print(f"  Rate limit hit (429). Retrying in {wait_time:.1f}s...")
+                    # Check for Retry-After header
+                    retry_after = e.response.headers.get("Retry-After")
+                    if retry_after:
+                        try:
+                            wait_time = float(retry_after) + random.uniform(1, 2)
+                        except ValueError:
+                            wait_time = 2 ** (attempt + 1) + random.uniform(0, 1)
+                    else:
+                        wait_time = 2 ** (attempt + 1) + random.uniform(0, 1)
+                    
+                    print(f"  Rate limit hit (429). Retrying in {wait_time:.1f}s... (Attempt {attempt+1}/{retries})")
                     time.sleep(wait_time)
                     continue
                 else:
