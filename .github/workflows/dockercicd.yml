@@ -1,9 +1,11 @@
-name: Backend Docker Build
+name: Backend Docker Build and Push
 
 on:
   push:
-    branches: 
-      - main
+    branches: [ "main" ]
+    paths:
+      - 'backend/**'  # Only trigger when backend files change
+      - '.github/workflows/backend-docker.yml'
 
 jobs:
   build-and-push-backend:
@@ -13,8 +15,18 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
     
-    - name: Test Step
-      run: echo "Workflow is running!"
+    - name: Debug - List backend files
+      run: |
+        echo "=== Backend Directory Contents ==="
+        ls -la backend/
+        echo ""
+        echo "=== Check Dockerfile ==="
+        if [ -f "backend/Dockerfile" ]; then
+          echo "✓ Dockerfile found!"
+          head -5 backend/Dockerfile
+        else
+          echo "✗ Dockerfile NOT found!"
+        fi
     
     - name: Login to DockerHub
       uses: docker/login-action@v3
@@ -22,10 +34,21 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
     
-    - name: Build and Push Backend Docker Image
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and Push to Docker Hub and GitHub Packages
       uses: docker/build-push-action@v5
       with:
         context: ./backend
         file: ./backend/Dockerfile
         push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/legalmate-backend:latest
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/legalmate-backend:latest
+          ${{ secrets.DOCKER_USERNAME }}/legalmate-backend:${{ github.sha }}
+          ghcr.io/${{ github.repository_owner }}/legalmate-backend:latest
+          ghcr.io/${{ github.repository_owner }}/legalmate-backend:${{ github.sha }}
