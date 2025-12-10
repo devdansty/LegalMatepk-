@@ -1,11 +1,9 @@
-name: Backend Docker Build and Push
+name: Backend Docker Build
 
 on:
   push:
-    branches: [ "main" ]
-    paths:
-      - 'backend/**'  # Only trigger when backend files change
-      - '.github/workflows/backend-docker.yml'
+    branches: 
+      - main
 
 jobs:
   build-and-push-backend:
@@ -14,19 +12,6 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
-    
-    - name: Debug - List backend files
-      run: |
-        echo "=== Backend Directory Contents ==="
-        ls -la backend/
-        echo ""
-        echo "=== Check Dockerfile ==="
-        if [ -f "backend/Dockerfile" ]; then
-          echo "✓ Dockerfile found!"
-          head -5 backend/Dockerfile
-        else
-          echo "✗ Dockerfile NOT found!"
-        fi
     
     - name: Login to DockerHub
       uses: docker/login-action@v3
@@ -49,6 +34,4 @@ jobs:
         push: true
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/legalmate-backend:latest
-          ${{ secrets.DOCKER_USERNAME }}/legalmate-backend:${{ github.sha }}
           ghcr.io/${{ github.repository_owner }}/legalmate-backend:latest
-          ghcr.io/${{ github.repository_owner }}/legalmate-backend:${{ github.sha }}
