@@ -1,0 +1,31 @@
+name: Backend Docker Build
+
+on:
+  push:
+    branches: 
+      - main
+
+jobs:
+  build-and-push-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    
+    - name: Test Step
+      run: echo "Workflow is running!"
+    
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build and Push Backend Docker Image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/legalmate-backend:latest
