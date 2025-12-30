@@ -1,67 +1,83 @@
-import pinecone
-from config import PINECONE_API_KEY, PINECONE_ENV, INDEX_NAME
+from pinecone import Pinecone
+from config import PINECONE_API_KEY, INDEX_NAME
 
 # Initialize Pinecone
-pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENV)
-index = pinecone.Index(INDEX_NAME)
+pc = Pinecone(api_key=PINECONE_API_KEY)
+index = pc.Index(INDEX_NAME)
 
-def query_pinecone(user_query, top_k=5):
+def query_pinecone(user_query: str, top_k: int = 5):
     """
-    Search Pinecone for top K relevant legal sections.
+    Query Pinecone using integrated embeddings.
     """
-    results = index.query(
-        vector=user_query,
+    response = index.query(
+        text=user_query,
         top_k=top_k,
         include_metadata=True
     )
 
     retrieved_chunks = []
-    for match in results['matches']:
+
+    for match in response["matches"]:
         retrieved_chunks.append({
-            "id": match['id'],
-            "text": match.get('values', ''),
-            "metadata": match.get('metadata', {})
+            "id": match["id"],
+            "text": match["metadata"].get("text", ""),  # stored text
+            "metadata": match["metadata"]
         })
+
     return retrieved_chunks
+
 
 def generate_answer(user_query, retrieved_chunks, qwen2_chatbot):
     """
-    Construct prompt and get response from fine-tuned Qwen2 1.5B chatbot.
+    Construct legal prompt and call Qwen2.
     """
-    context_text = ""
+    context = ""
+
     for chunk in retrieved_chunks:
         meta = chunk["metadata"]
-        context_text += f"Source: {meta.get('source','')}, Section: {meta.get('section','')}, Title: {meta.get('title','')}\n"
-        context_text += f"{chunk['text']}\n\n"
+        context += (
+            f"Source: {meta.get('source')}\n"
+            f"Section: {meta.get('section')}\n"
+            f"Title: {meta.get('title')}\n"
+            f"Text: {chunk['text']}\n\n"
+        )
 
     prompt = f"""
-Use the following legal context to answer the question:
+You are a legal assistant for Pakistani law.
 
-{context_text}
+Answer the question using ONLY the context below.
+If the answer is not found, say so clearly.
 
-Question: {user_query}
+Context:
+{context}
+
+Question:
+{user_query}
+
 Answer:
 """
 
-    response = qwen2_chatbot.generate(prompt)
-    return response
+    return qwen2_chatbot.generate(prompt)
 
+
+# ---- Local test ----
 if __name__ == "__main__":
-    user_question = "What are the steps for filing a civil suit in Pakistan?"
+    user_question = "What is the Enforcement of Shariah Act, 1991?"
 
-    # Retrieve top 5 chunks from Pinecone
-    chunks = query_pinecone(user_question, top_k=5)
-    print("📄 Retrieved chunks:")
+    chunks = query_pinecone(user_question)
+
+    print("📄 Retrieved sections:")
     for c in chunks:
         meta = c["metadata"]
-        print(f"- {c['id']} | Source: {meta.get('source')} | Section: {meta.get('section')} | Title: {meta.get('title')}")
+        print(f"- {c['id']} | {meta.get('source')} | Section {meta.get('section')}")
 
-    # Dummy chatbot class for testing
+    # Dummy chatbot for now
     class DummyChatbot:
         def generate(self, prompt):
-            return "This is a dummy answer. Replace with your Qwen2 call."
+            return "Dummy response. Replace with Qwen2 inference."
 
-    qwen2_chatbot = DummyChatbot()
-    answer = generate_answer(user_question, chunks, qwen2_chatbot)
-    print("\n💡 Legal Answer:")
+    chatbot = DummyChatbot()
+    answer = generate_answer(user_question, chunks, chatbot)
+
+    print("\n💡 Answer:")
     print(answer)
