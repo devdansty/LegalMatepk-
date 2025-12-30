@@ -4,22 +4,15 @@ import os
 import time
 
 # --- CONFIGURATION ---
-OPENROUTER_API_KEY = "your_key_here"
+OPENROUTER_API_KEY = "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"
 INPUT_FILE = "largdata.json"
-OUTPUT_FILE = "structured_data_c.json"
+OUTPUT_FILE = "structured_data_b.json"
 CHECKPOINT_FILE = "checkpoint.json"
-MODEL_ID = "xiaomi/mimo-v2-flash:free"
+MODEL_ID = "mistralai/devstral-2512:free"
 
-def get_openrouter_response(text, file_name):
-    # Your original exact prompt logic
-    prompt = f"""
-You are an expert legal data parser.
-Task: Convert the provided legal text into a structured JSON list.
-
-Source File: {file_name}
-Input Text:
-{text}
-
+def get_multi_turn_extraction(full_text, file_name):
+    # This is your original exact prompt logic, used for the first call
+    original_prompt_requirements = """
 Requirements:
 1. Extract every legal section as a separate object.
 2. "source": Name of the Ordinance/Act.
@@ -30,48 +23,86 @@ Requirements:
 
 Output Schema (Strict JSON List):
 [
-  {{
+  {
     "id": "string",
     "source": "string",
     "section": "string",
     "title": "string",
     "text": "string"
-  }}
+  }
 ]
 """
-    try:
-        response = requests.post(
-            url="https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "http://localhost:3000", # Required for OpenRouter
-                "X-Title": "LegalMate-Parser"
-            },
-            data=json.dumps({
-                "model": MODEL_ID,
-                "messages": [{"role": "user", "content": prompt}],
-                "include_reasoning": True, # Xiaomi reasoning mode
-                "response_format": {"type": "json_object"}
-            }),
-            timeout=300 # Reasoning takes time
-        )
-        
-        resp_data = response.json()
-        
-        # Check for API Errors
-        if "error" in resp_data:
-            print(f"   ❌ API Error: {resp_data['error'].get('message')}")
-            return None
 
-        content = resp_data['choices'][0]['message']['content']
-        # Remove potential markdown clutter
-        clean_content = content.replace("```json", "").replace("```", "").strip()
-        return json.loads(clean_content)
-        
-    except Exception as e:
-        print(f"   ❌ Network/Parsing Error: {e}")
-        return None
+    messages = [
+        {
+            "role": "system",
+            "content": "You are an expert legal data parser. Your task is to extract legal sections into a structured JSON list following strict metadata rules."
+        },
+        {
+            "role": "user",
+            "content": f"Source File: {file_name}\nInput Text:\n{full_text}\n\nTask: Extract the NEXT 25 legal sections keeping the correct context of whole document .\n{original_prompt_requirements}"
+        }
+    ]
+
+    all_document_results = []
+    batch_count = 1
+
+    while True:
+        try:
+            print(f"      📡 Requesting Batch {batch_count}...")
+            response = requests.post(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "http://localhost:3000",
+                    "X-Title": "LegalMate-Parser"
+                },
+                data=json.dumps({
+                    "model": MODEL_ID,
+                    "messages": messages,
+                    "response_format": {"type": "json_object"},
+                    "include_reasoning": False 
+                }),
+                timeout=600
+            )
+            
+            resp_data = response.json()
+            if "error" in resp_data:
+                print(f"      ❌ API Error: {resp_data['error'].get('message')}")
+                break
+
+            content = resp_data['choices'][0]['message']['content']
+            
+            # --- CLEAN & PARSE ---
+            clean_content = content.replace("```json", "").replace("```", "").strip()
+            data = json.loads(clean_content)
+            batch_list = data if isinstance(data, list) else next(iter(data.values()))
+
+            if not batch_list or len(batch_list) == 0:
+                print("      🏁 No more sections found.")
+                break
+
+            all_document_results.extend(batch_list)
+            print(f"      ✅ Batch {batch_count} success! (+{len(batch_list)} sections)")
+
+            # --- CONTEXT THREADING ---
+            messages.append({"role": "assistant", "content": content})
+            
+            # We repeat the core requirement in every follow-up so it doesn't forget the format
+            messages.append({
+                "role": "user", 
+                "content": f"Excellent. Now extract the NEXT 10 legal sections. Remember to keep the 'source' correct and maintain the strict JSON schema:\n{original_prompt_requirements}\nIf finished, return an empty list []."
+            })
+            
+            batch_count += 1
+            time.sleep(4) # Slightly longer sleep to be safe with free tier
+
+        except Exception as e:
+            print(f"      ❌ Error in Batch {batch_count}: {e}")
+            break
+            
+    return all_document_results
 
 def load_checkpoint():
     if os.path.exists(CHECKPOINT_FILE):
@@ -92,45 +123,26 @@ def main():
     processed_files = checkpoint["processed_files"]
     all_results = checkpoint["results"]
 
-    print(f"🔄 Checkpoint: {len(processed_files)} files already processed.")
-    
-    total_to_process = len(raw_docs)
-    
     for index, doc in enumerate(raw_docs):
         file_name = doc.get("file_name", f"Unknown_{index}")
-        
-        # SKIP if already done
-        if file_name in processed_files:
-            continue
+        if file_name in processed_files: continue
 
         text = doc.get("text", "")
-        print(f"📄 [{index + 1}/{total_to_process}] Processing: {file_name}...")
+        print(f"📄 [{index + 1}/{len(raw_docs)}] Processing: {file_name}...")
 
-        structured_data = get_openrouter_response(text, file_name)
+        file_sections = get_multi_turn_extraction(text, file_name)
 
-        if structured_data:
-            # Add results (handling if model returns a single dict or a list)
-            if isinstance(structured_data, list):
-                all_results.extend(structured_data)
-            else:
-                all_results.append(structured_data)
-            
-            # Update Checkpoint
+        if file_sections:
+            all_results.extend(file_sections)
             processed_files.append(file_name)
             save_checkpoint({"processed_files": processed_files, "results": all_results})
-            print(f"   ✅ Success! Saved to checkpoint.")
+            print(f"   🎉 File {file_name} completed. Saved {len(file_sections)} sections.")
         else:
-            print(f"   ⚠️ Failed to process {file_name}. Skipping for now.")
+            print(f"   ⚠️ Failed to extract any data from {file_name}.")
 
-        # Rate limit safety for free tier
-        time.sleep(2)
-
-    # Final Export
-    print(f"\n💾 Finalizing... Saving {len(all_results)} sections to {OUTPUT_FILE}")
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(all_results, f, indent=4, ensure_ascii=False)
-
-    print("🎉 All documents processed successfully!")
+    print("\n🎉 MISSION COMPLETE! All documents processed.")
 
 if __name__ == "__main__":
     main()
