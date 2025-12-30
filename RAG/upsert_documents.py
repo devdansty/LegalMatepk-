@@ -1,39 +1,28 @@
-
-import pinecone
 import json
-from config import PINECONE_API_KEY, PINECONE_ENV, INDEX_NAME
+from pinecone import Pinecone
+from config import PINECONE_API_KEY, INDEX_NAME
 
-pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENV)
-index = pinecone.Index(INDEX_NAME)
+pc = Pinecone(api_key=PINECONE_API_KEY)
+index = pc.Index(INDEX_NAME)
 
-JSON_FILE = "../Law_data/structured_data.json"
-
+JSON_FILE = "structured_data.json"
 with open(JSON_FILE, "r", encoding="utf-8") as f:
     legal_docs = json.load(f)
 
-print(f"📄 Loaded {len(legal_docs)} legal sections from JSON.")
-
-vectors_to_upsert = []
-
+print(f"📄 Processing {len(legal_docs)} documents...")
+records = []
 for doc in legal_docs:
-    doc_id = doc.get("id")
-    text = doc.get("text", "")
-    metadata = {
-        "source": doc.get("source", ""),
-        "section": doc.get("section", ""),
-        "title": doc.get("title", "")
-    }
-
-    vectors_to_upsert.append({
-        "id": doc_id,
-        "values": text,  # Pinecone integrated embeddings handle this
-        "metadata": metadata
+    records.append({
+        "_id": str(doc["id"]),
+        "text": doc["text"], 
+        "source": str(doc.get("source", "unknown")),
+        "section": str(doc.get("section", "unknown")),
+        "title": str(doc.get("title", "unknown"))
     })
+BATCH_SIZE = 90
+for i in range(0, len(records), BATCH_SIZE):
+    batch = records[i : i + BATCH_SIZE]
+    index.upsert_records(namespace="legal-namespace", records=batch)
+    print(f"✅ Upserted batch {i // BATCH_SIZE + 1}")
 
-BATCH_SIZE = 100
-for i in range(0, len(vectors_to_upsert), BATCH_SIZE):
-    batch = vectors_to_upsert[i:i + BATCH_SIZE]
-    index.upsert(vectors=batch)
-    print(f"✅ Upserted batch {i//BATCH_SIZE + 1} ({len(batch)} sections)")
-
-print("🎉 All documents upserted successfully!")
+print("🎉 Successfully uploaded and embedded to Pinecone!")
