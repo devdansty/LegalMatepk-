@@ -1,83 +1,61 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from pinecone import Pinecone
-from config import PINECONE_API_KEY, INDEX_NAME
+import os
 
-# Initialize Pinecone
-pc = Pinecone(api_key=PINECONE_API_KEY)
-index = pc.Index(INDEX_NAME)
+app = FastAPI()
+pc = Pinecone(api_key="YOUR_PINECONE_KEY")
+index = pc.Index("YOUR_INDEX_NAME")
 
-def query_pinecone(user_query: str, top_k: int = 5):
-    """
-    Query Pinecone using integrated embeddings.
-    """
+class ChatRequest(BaseModel):
+    prompt: str
+
+def query_pinecone(user_query: str, top_k: int = 3):
     response = index.query(
-        text=user_query,
-        top_k=top_k,
+        text=user_query, 
+        top_k=top_k, 
         include_metadata=True
     )
-
-    retrieved_chunks = []
-
+    
+    context_text = ""
     for match in response["matches"]:
-        retrieved_chunks.append({
-            "id": match["id"],
-            "text": match["metadata"].get("text", ""),  # stored text
-            "metadata": match["metadata"]
-        })
-
-    return retrieved_chunks
-
-
-def generate_answer(user_query, retrieved_chunks, qwen2_chatbot):
-    """
-    Construct legal prompt and call Qwen2.
-    """
-    context = ""
-
-    for chunk in retrieved_chunks:
-        meta = chunk["metadata"]
-        context += (
-            f"Source: {meta.get('source')}\n"
-            f"Section: {meta.get('section')}\n"
-            f"Title: {meta.get('title')}\n"
-            f"Text: {chunk['text']}\n\n"
+        meta = match["metadata"]
+        # Building a structured context for the LLM
+        context_text += (
+            f"--- REFERENCE START ---\n"
+            f"SOURCE_NAME: {meta.get('source')}\n"
+            f"SECTION_NUMBER: {meta.get('section')}\n"
+            f"CHAPTER_TITLE: {meta.get('title')}\n"
+            f"LEGAL_CONTENT: {meta.get('text')}\n"
+            f"--- REFERENCE END ---\n\n"
         )
+    return context_text
 
-    prompt = f"""
-You are a legal assistant for Pakistani law.
+@app.post("/generate")
+async def generate(request: ChatRequest):
+    try:
+        user_query = request.prompt
+        
+        # 2. Retrieve Context
+        context = query_pinecone(user_query)
+        full_prompt = f"""You are 'LegalMate', an expert legal assistant specialized in Pakistani Law.
 
-Answer the question using ONLY the context below.
-If the answer is not found, say so clearly.
+INSTRUCTIONS:
+1. LANGUAGE: Detect the language of the 'Question'. If it is in Urdu, answer in Urdu. If it is in Roman Urdu, answer in Roman Urdu. If it is in English, answer in English.
+2. CITATIONS: You must explicitly cite the Source and Section at the end of your answer. Format: "According to [Source Name], Section [Section Number]..."
+3. STRICTNESS: Answer and suggest ONLY using the provided Context . If the information is missing, state that you do not have information on this specific legal matter.
 
 Context:
 {context}
 
-Question:
+Question: 
 {user_query}
 
-Answer:
-"""
-
-    return qwen2_chatbot.generate(prompt)
-
-
-# ---- Local test ----
-if __name__ == "__main__":
-    user_question = "What is the Enforcement of Shariah Act, 1991?"
-
-    chunks = query_pinecone(user_question)
-
-    print("📄 Retrieved sections:")
-    for c in chunks:
-        meta = c["metadata"]
-        print(f"- {c['id']} | {meta.get('source')} | Section {meta.get('section')}")
-
-    # Dummy chatbot for now
-    class DummyChatbot:
-        def generate(self, prompt):
-            return "Dummy response. Replace with Qwen2 inference."
-
-    chatbot = DummyChatbot()
-    answer = generate_answer(user_question, chunks, chatbot)
-
-    print("\n💡 Answer:")
-    print(answer)
+Answer:"""
+        generated_response = qwen_model.generate(full_prompt) 
+        
+        return {"response": generated_response}
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
