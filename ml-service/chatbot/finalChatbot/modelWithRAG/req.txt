@@ -1,0 +1,10 @@
+Implementation Overview
+
+1. Preprocess your law data (chunk by section, ~300–500 words each).
+2. Generate embeddings for each chunk using sentence-transformers or OpenAI embeddings.
+3. Store embeddings in FAISS or ChromaDB.
+4. In your /generate route:
+    Embed the user’s query.
+    Retrieve top-k similar chunks.
+    Pass them as context to your model.
+5. Add citation logic → attach source section names (e.g., “Section 5, Enforcement of Shari’ah Act”).

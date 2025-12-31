@@ -1,0 +1,377 @@
+[
+    {
+        "instruction": "Explain whether profit from sale of immovable property by a charitable trust is treated as business income under Pakistani law.",
+        "input": "A charitable trust sold immovable property after many years. The tax department treated the profit as business income, while the trust claimed it was a capital transaction and not a business activity.",
+        "output": "The court held that a single or isolated sale of immovable property, without evidence of business activity, does not automatically amount to business income."
+    },
+    {
+        "instruction": "Explain what the Supreme Court decided in this property-related contract dispute and what relief was ultimately granted.",
+        "input": "The case involves a contractor who entered into an agreement with the property owner to demolish an old structure and construct a plaza on Plot No. A-49, Scheme-33, Karachi. The contractor claimed that he completed most of the construction work and raised a bill of Rs. 52,01,500 along with claims for raw material costs and damages. The Trial Court and Appellate Court decreed the full claimed amounts. However, the High Court dismissed the entire suit in second appeal. The contractor then filed a civil appeal before the Supreme Court.",
+        "output": "The Supreme Court allowed the appeal in part and restored the decree only for the outstanding construction amount of Rs. 52,10,500, holding that the claim for damages and raw material costs was not supported by proper issues or evidence."
+    },
+    {
+        "instruction": "Explain the Supreme Court’s decision in this dispute regarding ownership and possession of public property.",
+        "input": "The plaintiffs claimed to have purchased a property in Peshawar through a sale mutation and sought declaration of ownership, possession, and damages against the Municipal Corporation. The Corporation denied the claim and asserted its own ownership and possession. The lower courts decided in favour of the plaintiffs, and the High Court refused to interfere. The case was then appealed to the Supreme Court.",
+        "output": "The Supreme Court allowed the appeal, set aside the judgments of the lower courts, and dismissed the plaintiffs’ suit, holding that they failed to prove valid title, failed to join necessary parties, and that the property was in possession of the Municipal Corporation, creating a presumption of public ownership."
+    },
+    {
+        "instruction": "State the Supreme Court's decision in a property dispute based on ownership through dower.",
+        "input": "A woman filed a civil suit claiming ownership of agricultural land based on a dower deed executed at the time of her marriage. The defendants challenged her claim, raised objections about limitation and maintainability, and argued that the property could not be claimed through civil court. The lower courts had conflicting decisions and the High Court ultimately decreed the suit in her favour.",
+        "output": "The Supreme Court dismissed the appeal and upheld the High Court’s judgment, confirming that the woman was the lawful owner of the property through dower and that the suit was not time-barred."
+    },
+    {
+        "instruction": "State the Supreme Court's decision in a property dispute based on ownership through dower.",
+        "input": "A woman filed a civil suit claiming ownership of agricultural land based on a dower deed executed at the time of her marriage. The defendants challenged her claim, raised objections about limitation and maintainability, and argued that the property could not be claimed through civil court. The lower courts had conflicting decisions and the High Court ultimately decreed the suit in her favour.",
+        "output": "The Supreme Court dismissed the appeal and upheld the High Court’s judgment, confirming that the woman was the lawful owner of the property through dower and that the suit was not time-barred."
+    },
+    {
+        "instruction": "State the Supreme Court's decision in a land dispute involving alleged fraudulent revenue entries and unproven sale transactions.",
+        "input": "Legal heirs of deceased landowners filed a suit claiming that their parents never sold the disputed agricultural land and that the revenue record had been manipulated. The appellants relied only on revenue entries and failed to produce sale deeds or witnesses. The High Court restored the trial court's decree in favour of the legal heirs.",
+        "output": "The Supreme Court dismissed the appeal and upheld the High Court’s judgment, holding that the alleged sale transactions were not proved and that the revenue record had been manipulated."
+    },
+    {
+        "instruction": "What was the court's final decision in this property dispute?",
+        "input": "A woman claimed ownership of agricultural land as her dower through Nikah Nama. The defendants relied on revenue record and claimed inheritance rights. The case went through trial court, appellate court, and High Court before reaching Supreme Court.",
+        "output": "The appeal was dismissed and the High Court judgment in favour of the woman was upheld."
+    },
+    {
+        "instruction": "What was the court’s final decision in this property gift dispute?",
+        "input": "A man claimed ownership of land through a gift mutation made by his father on the day of his death. His sisters challenged the gift, arguing it was suspicious and invalid. The case involved delay in filing the appeal and questions about proof of a valid gift under Islamic and property law.",
+        "output": "The appeal was dismissed as time-barred and meritless, and the legal heirs were ordered to be given their rightful shares and possession of the property."
+    },
+    {
+        "instruction": "What was the court’s final decision in this dispute over lease rights in a Katchi Abadi plot?",
+        "input": "The appellant claimed that he was entitled to an additional portion of a plot that was instead leased to another person by the Karachi Metropolitan Corporation. He had previously filed a similar suit which was dismissed, and later filed another suit many years after the lease was granted, seeking cancellation of the respondent’s lease and declaration of his own rights.",
+        "output": "The appeal was dismissed because the suit was time-barred and not maintainable, as the appellant was not in lawful possession of the plot and had no legal entitlement to claim lease rights."
+    },
+    {
+        "instruction": "Decide whether landowners are entitled to enhanced compensation where there is delay in award and undervaluation of compulsorily acquired land.",
+        "input": "Private land near Fazle Haq College, Mardan was acquired under the Land Acquisition Act. Possession was taken in 1986 but the award was issued after ten and a half years. The Collector awarded low compensation and excluded land used for approach roads. Landowners challenged the valuation and delay.",
+        "output": "The Supreme Court enhanced the compensation to market value, awarded compensation for approach road land, increased the value of constructions, granted statutory compulsory acquisition charges and interest, dismissed government appeals, and partly allowed the landowners’ appeals."
+    },
+    {
+        "instruction": "Determine whether a husband can deny paternity and seek a DNA test for children born during a valid marriage after long delay.",
+        "input": "A husband filed a suit to deny paternity of two children born during his marriage and sought a DNA test years later. He admitted marital relations and delayed denial. The children were not made parties to the suit.",
+        "output": "The Supreme Court held that children born during a valid marriage are conclusively legitimate, late denial is invalid, DNA testing cannot be ordered, the suit was dismissed, and the prior orders were set aside."
+    },
+    {
+        "instruction": "Explain whether the High Court can reverse concurrent findings in revision when alleged gift mutations are recorded in official revenue records.",
+        "input": "A legal heir challenged gift mutations as fraudulent. Trial and Appellate Courts dismissed the suit after examining revenue records and witness testimony. The High Court in revision reversed those findings and decreed the suit.",
+        "output": "The Supreme Court held that the High Court exceeded its revisional jurisdiction, restored the Trial Court’s dismissal, and ruled that the recorded mutations were not proved to be fraudulent."
+    },
+    {
+        "instruction": "Decide whether challenges to a decades-old gift mutation and a later sale mutation are barred by limitation and valid on merits.",
+        "input": "A son challenged a 1977 gift mutation in favour of his wife and daughters and a 2004 sale mutation in favour of one daughter, claiming fraud and inherited rights.",
+        "output": "The Supreme Court held the challenge to the 1977 gift mutation time-barred and upheld it, but declared the 2004 sale mutation invalid for lack of proof, partially allowing the appeal."
+    },
+    {
+        "instruction": "Determine whether a long-standing sale mutation is proved when the plaintiff withholds direct evidence and other sellers confirm the transaction.",
+        "input": "A sister challenged a 1975 sale mutation in favour of her brother after 28 years, while other sellers supported the sale and she herself did not testify.",
+        "output": "The Supreme Court allowed the appeal, held that the sale mutation was valid, drew an adverse presumption against the plaintiff for not testifying, applied the Evidence Act 1872, and dismissed the suit."
+    },
+    {
+        "instruction": "Decide whether non-disclosure of an asset in nomination papers amounts to concealment when the person only held an investment interest and not ownership.",
+        "input": "A returned candidate was accused of concealing ownership of a textile mill. Evidence showed he only invested in a development project on the mill’s land and never acquired legal ownership.",
+        "output": "The Supreme Court held that the appellant was not the owner of the mill, found no concealment of assets, and set aside the Election Tribunal’s decision."
+    },
+    {
+        "instruction": "Decide whether sons can exclusively inherit agricultural land when inheritance mutation was made after the cutoff date for customary law and Islamic Shariat applies.",
+        "input": "Allah Ditta died before 1948. An inheritance mutation in favour of his two sons was attested in 1956. His daughters filed a suit to cancel the mutation and claim their Islamic inheritance shares. The sons argued that customary law entitled them to exclusive ownership.",
+        "output": "The Supreme Court dismissed the appeal, held that the mutation made after the cutoff date could not exclude other heirs, and ordered inheritance to be distributed to all legal heirs according to Islamic Shariat."
+    },
+    {
+        "instruction": "Decide whether a pre-emption suit fails when Talb-i-Muwathibat is allegedly delayed due to earlier knowledge of sale through court proceedings.",
+        "input": "A pre-emption suit was decreed by the trial court and upheld by appellate and High Court. Appellants argued that respondent knew about the sale earlier through a written statement filed in another suit and failed to make timely Talb-i-Muwathibat as required by law.",
+        "output": "The Supreme Court dismissed the appeal, holding that knowledge of sale was a factual issue already decided by three courts and no misreading or non-reading of evidence was shown."
+    },
+    {
+        "instruction": "Decide whether a succession certificate obtained by concealment of legal heirs can be revoked despite technical objections and delay.",  
+        "input": "A succession certificate was fraudulently obtained by a son claiming to be the sole heir, while daughters from the second wife were excluded. Trial court revoked the certificate but High Court restored it on technical grounds.",
+        "output": "The Supreme Court allowed the appeal, restored revocation of the succession certificate, ordered recovery of shares for the daughters, and directed criminal proceedings for fraud."
+    },
+    {
+        "instruction": "Determine whether a Service Tribunal can reduce a penalty when a government servant admits illegal transfer of government land.",
+        "input": "A government official admitted signing a mutation transferring 270 kanals of government land to a private person. The Service Tribunal reduced his dismissal to a minor penalty.",
+        "output": "The Supreme Court restored the dismissal from service, holding that the Tribunal exceeded its powers and serious misconduct cannot be treated leniently."
+    },
+    {
+        "instruction": "Decide whether specific performance should be granted when the buyer failed to pay an installment on time but later deposited the full amount.",
+        "input": "Buyer and seller signed agreements for sale of a house. Buyer paid first installment but delayed the second. Seller claimed cancellation while buyer claimed seller failed to obtain CDA NOC.",
+        "output": "The Supreme Court majority dismissed the appeal, holding the buyer failed to prove readiness and willingness to perform, while the dissent held time was not of the essence and specific performance should have been granted."
+    },
+    {
+        "instruction": "Decide whether a sale deed executed under a court decree should be stamped according to contract price or market value at registration time.",
+        "input": "Multiple appeals challenged High Court rulings about stamp duty on conveyance deeds issued after decrees for specific performance, where valuation tables under Section 27-A of the Stamp Act existed.",
+        "output": "The Supreme Court held that stamp duty must be paid based on the valuation table and rates applicable on the date the document is presented for registration, not the contract price or suit-filing date."
+    },
+    {
+        "instruction": "Decide whether a service tribunal can reduce a departmental dismissal when a government officer admits illegal transfer of government land.",
+        "input": "A government official admitted mutating 270 kanals of state land to a private person, but the Service Tribunal reduced his dismissal to a minor penalty.",
+        "output": "The Supreme Court restored the dismissal, holding that admitted illegal transfer of government land is serious misconduct and tribunals cannot reduce penalties without strong legal reasons."
+    },
+    {
+        "instruction": "Decide whether a buyer is entitled to specific performance when he fails to prove readiness and financial ability to pay the balance sale price on time.",
+        "input": "A buyer paid initial installments under two house sale agreements but failed to pay the final amount by the due date and could not prove he had funds, while the seller had obtained necessary tax clearances.",
+        "output": "The Supreme Court dismissed the appeal and held that specific performance cannot be granted because the buyer failed to prove continuous readiness and willingness to perform his contractual obligations."
+    },
+    {
+        "instruction": "Decide how stamp duty should be calculated for a sale deed prepared after a court decree for specific performance.",
+        "input": "A dispute arose over whether stamp duty should be charged according to the sale price mentioned in the agreement/decree or according to the official valuation table at the time of registration.",
+        "output": "The Court held that stamp duty must be calculated based on the official notional/market value as per the valuation table on the date the document is presented for registration, not the price in the agreement or decree."
+    },
+    {
+        "instruction": "Decide the correct legal basis for assessing stamp duty on conveyance deeds executed under a decree for specific performance.",
+        "input": "Court decreed sale deed for specific performance where parties dispute whether stamp duty should follow agreement price or official valuation table at registration time.",
+        "output": "Stamp duty must be calculated according to the valuation table and stamp rate applicable on the date the document is presented for registration."
+    },
+    {
+        "instruction": "Determine whether a pre-emption suit should be dismissed due to short deposit caused by an inadvertent clerical error in sale consideration.",
+        "input": "Plaintiff filed pre-emption suit but mistakenly stated sale price as Rs.14,00,000 instead of Rs.14,40,000 and deposited 1/3rd of the wrongly stated amount within time.",
+        "output": "The suit should not be dismissed because the short deposit was due to a bona fide mistake and unclear court directions, and the deficiency should be allowed to be made good."
+    },
+    {
+        "instruction": "Decide whether High Court can reverse concurrent findings when pre-emption rights were not proved due to failure of Talab and limitation.",
+        "input": "Respondent filed four pre-emption suits but failed to prove timely Talab-i-Muwatibat and Talab-i-Khasumat; trial and appellate courts dismissed suits but High Court reversed them in revision.",
+        "output": "High Court had no jurisdiction to reverse concurrent factual findings, and the pre-emption suits were rightly dismissed for failure to prove Talab and being time-barred."
+    },
+    {
+        "instruction": "Decide whether a fraudulent gift mutation by an illiterate woman can be upheld and if subsequent purchasers can claim protection despite fraud.",
+        "input": "Illiterate woman denied gifting her land; mutation of gift was allegedly entered fraudulently by cousins who later sold the land to appellants, who claimed bona fide purchase and limitation.",
+        "output": "Fraudulent gift mutation was void, burden of proving valid gift was not discharged, limitation ran from date of knowledge, and subsequent purchasers were not protected."
+    },
+    {
+        "instruction": "Decide whether a pre-emption suit should be dismissed for not mentioning the date of Talab-i-Ishhad notice in the plaint and alleged prior delivery of possession.",
+        "input": "Appellant argued the plaint was defective due to missing notice date and claimed possession was delivered before mutation, while respondent proved notice was issued and delivered and Talabs were performed.",
+        "output": "Suit was correctly restored and upheld because evidence proved proper performance of Talabs, notice was proved on record without objection, and prior possession was not established."
+    },
+    {
+        "instruction": "Decide whether a mutation transferring a minor woman’s inherited land to her minor nephew was valid and whether subsequent purchasers can claim protection as bona fide buyers.",
+        "input": "Minor female heir’s land was mutated to her minor nephew without lawful authority, and later sold to third parties who claimed to be bona fide purchasers and raised limitation objections.",
+        "output": "The mutation was void ab initio due to fraud and lack of capacity; limitation did not apply against fraud; subsequent purchasers had no better title, so the appeals were dismissed."
+    },
+    {
+        "instruction": "Determine which appellate court had pecuniary jurisdiction over partition suit appeals based on suit valuation stated in the plaint.",
+        "input": "Civil partition suit valued in plaint at Rs.230 for jurisdiction and Rs.15 for court fee; Additional District Judge returned appeal memos citing lack of pecuniary jurisdiction; High Court restored appeals relying on earlier precedents.",
+        "output": "Valuation stated in the plaint controls pecuniary jurisdiction until finally determined, so the Additional District Judge had jurisdiction and the appeals were properly heard; Supreme Court dismissed the appeals."
+    },
+    {
+        "instruction": "Decide whether a tax defaulter can challenge an auction sale through Section 12(2) CPC without using the remedies provided under the Income Tax Rules.",
+        "input": "Property of a tax defaulter was attached and auctioned with his consent; purchaser paid full price; sale certificate issued after writ petition; defaulter later filed application under Section 12(2) CPC alleging fraud and procedural irregularities without earlier challenging auction under IT Rules.",
+        "output": "When special law (Income Tax Rules) provides complete remedies to challenge attachment and sale, failure to use those remedies bars collateral challenge under Section 12(2) CPC, and the auction and sale certificate remain valid."
+    },
+    {
+        "instruction": "Determine whether, under Shia law of inheritance, a widow who has children is entitled to a share in her deceased husband's immovable property.",
+        "input": "Children of a deceased man challenged a mutation granting their mother (widow) a share in agricultural land, arguing Shia law bars widows from inheriting land, relying on precedent about childless widows.",
+        "output": "Under Shia law, only a childless widow is barred from inheriting land; a widow who has children is entitled to her legal share, so lower courts were correct and the High Court erred in applying precedent."
+    },
+    {
+        "instruction": "Decide rights of a third-party purchaser where property was held benami between two sisters and was sold by the ostensible owner.",
+        "input": "A DHA plot was allotted to one sister (army officer), but the other sister claimed to be real owner as she paid the price; a third party claimed to be a bona fide purchaser from the allottee.",
+        "output": "The court held the paying sister owned only half due to financial contribution, the allottee could validly sell one residential plot, and the purchaser was entitled only to Plot 57/1 while the other plot and commercial interest were divided accordingly."
+    },
+    {
+        "instruction": "Determine how Pakistan Railways’ land may be lawfully protected and utilized despite conflicting Supreme Court orders on leasing and use.",
+        "input": "The Supreme Court examined Railways’ control over large tracts of land, conflicting orders on leasing and commercial use, and proposals for revenue generation without changing land nature.",
+        "output": "The Court allowed short-term leasing and public-purpose use without changing land character, required legal and regulatory approval for development schemes, and directed further hearings and audits."
+    },
+    {
+        "instruction": "Summarize the legal holding and directives of the Supreme Court regarding misuse of power of attorney, fraudulent land transfer, and relief granted to female heirs.",
+        "input": "A review petition was restored and heard where a power of attorney was misused by a brother to transfer his sister’s land to his sons. The sister repudiated the transaction and obtained decrees in her favor, but remained dispossessed during her lifetime.",
+        "output": "The Court held the sales void due to misuse of power of attorney and violation of women’s property protections, ordered immediate restoration of possession to the legal heirs, imposed Rs.1,000,000 as costs secured as a charge on the petitioners’ land, and directed revenue authorities to enforce the order and take action against complicit officials."
+    },
+    {
+        "instruction": "Extract the Supreme Court’s directions regarding FIA investigations, recovery of properties and rents, and compliance requirements imposed on authorities.",
+        "input": "FIA submitted a report stating registration of FIRs, inquiries, arrests, recovery of properties and rent in ETPB-related matters, but did not attach supporting documents.",
+        "output": "The Court directed FIA to submit copies of FIRs and complete supporting records, ensure legal compliance without harassment, file a fresh report within four weeks, place investigation material regarding specific properties on record, and ordered progress reports on restoration of minority religious sites and government hospital conditions."
+    },
+    {
+        "instruction": "Summarize the court’s interim directions regarding Bahria Town’s land development, MDA’s powers, and restrictions imposed to protect state land.",
+        "input": "NAB submitted a survey showing Bahria Town occupying and developing land without lawful consolidation by MDA, and MDA lacked authority to exchange or allot state corridor land.",
+        "output": "The Court restrained Bahria Town from development on unconsolidated land, barred MDA and Board of Revenue from allotment or exchange of state land, ordered furnishing of survey reports and satellite images, and warned of contempt for non-compliance."
+    },
+    {
+        "instruction": "Explain why the Supreme Court declined to interfere with the High Court’s refusal to initiate contempt proceedings regarding the alleged violation of a status quo order.",
+        "input": "Petitioners alleged respondents violated a High Court status quo order by blocking a disputed road, and their contempt application was dismissed by the High Court.",
+        "output": "The Supreme Court held that contempt is primarily a matter between the court and the contemnor, and since the High Court’s refusal was not arbitrary or perverse, it declined to interfere and dismissed the petition."
+    },
+    {
+        "instruction": "Explain why the Supreme Court refused to interfere with the High Court’s finding that the petitioner was in unlawful occupation of Plot No. 479.",
+        "input": "The petitioner claimed ownership through a sale deed for land in Deh Pattar, while respondents proved their inheritance rights in Plot No. 479 located in Deh Badin.",
+        "output": "The Supreme Court upheld that the plot was in Deh Badin, the respondents were rightful heirs of a co-owner, and the petitioner failed to prove a valid title chain, so the unlawful occupation finding was maintained and the petition dismissed."
+    },
+    {
+        "instruction": "Explain why the Supreme Court dismissed the land ownership claim based on the 1978 sale agreement.",
+        "input": "Petitioners relied on an alleged sale agreement from 1978 but did not seek specific performance and failed to prove the document’s execution.",
+        "output": "The Supreme Court dismissed the claim because a mere declaratory suit was not maintainable without seeking specific performance, the sale agreement was not properly proved, possession was not established as ownership, and the concurrent courts’ findings were upheld."
+    },
+    {
+        "instruction": "Explain why the Supreme Court set aside the High Court’s decision regarding land acquisition for the police station.",
+        "input": "The High Court annulled acquisition of respondent No.1’s land and restored an earlier notification without hearing other affected landowners and without proof of mala fides.",
+        "output": "The Supreme Court held that the High Court relied on unproven allegations of mala fide, violated the principle of audi alteram partem by not hearing affected parties, and therefore remanded the case for fresh decision after hearing all concerned."
+    },
+    {
+        "instruction": "Explain why the Supreme Court refused to condone the delay and dismissed the petition in the case.",
+        "input": "The petitioner filed a Section 12(2) CPC application instead of timely appeal and failed to explain each day of delay under the Limitation Act.",
+        "output": "The Supreme Court held that the petitioner was negligent, failed to show sufficient cause for delay, misused Section 12(2) CPC despite being a party to the suit, and therefore declined to condone delay and dismissed the petition."
+    },
+    {
+        "instruction": "Explain why the Supreme Court held that the suit for specific performance was not barred by limitation and why Section 53-A of the Transfer of Property Act applied in this case.",
+        "input": "The plaintiff paid full consideration in 1980, took possession, but could not get sublease registered due to a legal ban and later sought specific performance when the seller unlawfully transferred the property to third parties.",
+        "output": "The Supreme Court held that the suit was not time-barred because the plaintiff was already in lawful possession under part performance and was enforcing an existing equitable right under Section 53-A of the Transfer of Property Act. Limitation does not defeat an existing right enjoyed in possession, and the plaintiff was entitled to seek execution of the sublease when the ban was lifted and his rights were threatened."
+    },
+    {
+        "instruction": "State why the Supreme Court held that the Judicial Magistrate had no jurisdiction to proceed under Section 145 Cr.P.C. and why the High Court’s judgment was set aside.",
+        "input": "A complaint under Section 145 Cr.P.C. was entertained by a Judicial Magistrate in Balochistan after the 2010 amendment, and possession was restored despite vague allegations of breach of peace.",
+        "output": "The Supreme Court held that after the Balochistan amendment, only a District Magistrate, Sub-Divisional Magistrate, or specially empowered Executive Magistrate could act under Section 145 Cr.P.C., so the Judicial Magistrate lacked jurisdiction. Additionally, the essential condition of imminent breach of peace was not established, and the Magistrate improperly decided title and possession, leading to the High Court’s judgment being set aside."
+    },
+    {
+        "instruction": "Explain why the Supreme Court upheld the validity of the old Qabinnama and dismissed the petitioners’ claim to the disputed property.",
+        "input": "Petitioners claimed ownership through inheritance and sale, while the respondent relied on a 1949 Qabinnama showing the land was given as dower to Mst. Sahib Khatoon.",
+        "output": "The Court held that the Qabinnama, being an ancient document over 30 years old and produced from proper custody, carried a statutory presumption of genuineness, which defeated later claims of inheritance or sale by the petitioners, so the petition was dismissed."
+    },
+    {
+        "instruction": "State why the Supreme Court rejected the alleged gift and dismissed the petitioner’s claim over the land.",
+        "input": "The petitioner relied on a gift mutation said to be executed through a power of attorney in favour of his brother-in-law, but no original power of attorney or official record was produced.",
+        "output": "The Court found that the power of attorney was never proved and did not exist in official records, making the gift invalid, so the inheritance of the legal heirs prevailed and the petition was dismissed with costs."
+    },
+    {
+        "instruction": "State the Supreme Court’s final decision regarding the cancellation or restoration of CDA plot allotments.",
+        "input": "The High Court had cancelled CDA’s newly created plots and directed action for violating the Master Plan, while CDA and allottees argued the land was reserved for 'Future Use' and allotments were lawful.",
+        "output": "The Supreme Court set aside the High Court’s judgments and restored the cancelled plot allotments, holding that CDA lawfully used 'Future Use' land and no legal rights of the petitioners were violated."
+    },
+    {
+        "instruction": "State the Supreme Court’s final decision regarding the grant or cancellation of alternate land under the Grow More Food Scheme.",
+        "input": "The petitioner’s temporary lease expired in 1962 and he later received alternate land, which was cancelled by revenue authorities on allegations of fraud and ineligibility, while the High Court upheld the cancellation.",
+        "output": "The Supreme Court converted the petition into an appeal, set aside the High Court’s judgment, and remanded the case to the Board of Revenue to reconsider eligibility for alternate land under the relevant notifications."
+    },
+    {
+        "instruction": "State the Supreme Court’s final decision regarding the validity of the power of attorney and the transfer of the disputed plot.",
+        "input": "The petitioners claimed ownership of a residential plot based on an alleged power of attorney and subsequent conveyance deeds, while the original allottee denied ever executing any such power of attorney. All lower courts held the power of attorney to be forged and unregistered.",
+        "output": "The Supreme Court dismissed the petition, upheld the concurrent findings that the power of attorney was unregistered and unproven, declared the subsequent conveyances invalid, and granted time to the petitioners to vacate the property."
+    },
+    {
+        "instruction": "Decide whether the petitioner proved his superior right of pre-emption and valid performance of Talb requirements.",
+        "input": "A pre-emption suit was filed claiming Shafi-Jar right based on adjacency and common water source. The buyer denied common passage, water source, sale price, and proper Talb performance. All lower courts dismissed the suit.",
+        "output": "The Supreme Court dismissed the petition, holding that the petitioner failed to prove superior right of pre-emption and did not lawfully perform Talb-i-Muwathibat and Talb-i-Ishhad, and therefore no interference with concurrent findings was warranted."
+    },
+    {
+        "instruction": "Decide whether the respondents validly proved Talb-i-Muwathibat and were entitled to succeed in a pre-emption suit.",
+        "input": "Vendee challenged appellate and High Court judgments that had decreed a pre-emption suit, arguing delay in Talb, broken chain of information, and non-appearance of one pre-emptor as witness.",
+        "output": "The Supreme Court allowed the appeal, holding that Talb-i-Muwathibat was not proved due to delay, broken source of information, and failure of one pre-emptor to testify, and restored the trial court’s dismissal of the suit."
+    },
+    {
+        "instruction": "Decide whether the petitioner could challenge concurrent findings decreeing specific performance of an agreement to sell.",
+        "input": "Seller’s legal heirs disputed an agreement to sell executed by their predecessor. Trial court partially decreed specific performance; appeal and revision were dismissed. Petitioner alleged misreading and non-reading of evidence.",
+        "output": "The Supreme Court dismissed the petition, holding that the agreement to sell, payment of consideration, and delivery of possession were proved by reliable witnesses and admissions of other legal heirs, and found no misreading or legal infirmity in the concurrent findings."
+    },
+    {
+        "instruction": "Decide whether a second execution application of a pre-emption decree was barred by limitation and maintainable after dismissal of the first execution application for non-prosecution.",
+        "input": "A pre-emption decree was passed by the Lahore High Court on 05.07.2001 and upheld by the Supreme Court. The decree-holders deposited the purchase money in time. Their first execution application was dismissed in 2002 for non-prosecution. They filed a second execution application in 2009. The judgment-debtors objected that it was time-barred under Section 48 CPC and not maintainable.",
+        "output": "The Supreme Court held that in pre-emption decrees, limitation for execution runs from the date of default in delivery of possession, not from the date of decree, where no specific date of possession is fixed. Since the decree-holders had deposited the purchase money in time and the judgment-debtors failed to deliver possession, the second execution application was within time. A second execution application is maintainable when the first was dismissed for non-prosecution and not on merits. The petition was dismissed and leave was refused."
+    },
+    {
+        "instruction": "Decide whether the High Court was justified in allowing additional evidence and remanding the case while exercising revisional powers under Section 115 CPC.",
+        "input": "The plaintiff claimed inheritance rights as the daughter of the deceased and won in trial and first appeal. In revision, the High Court accepted an application under Order XLI Rule 27 CPC and remanded the case for additional evidence. The defendants had not sought such evidence earlier.",
+        "output": "The Supreme Court held that the High Court exceeded its revisional jurisdiction. Additional evidence under Order XLI Rule 27 CPC cannot be used to fill lacunae or enable fishing inquiries. No exceptional circumstances existed, and the defendants had earlier chances to produce evidence. The remand and setting aside of concurrent findings were незакон and not in accordance with law."
+    },
+    {
+        "output": "Leave to appeal was declined because the alleged gift was not valid in law. The document itself effected the gift and was required to be registered and stamped under the Transfer of Property Act and Registration Act. In absence of registration, the property could not be transferred to the petitioner.",
+        "input": "The petitioner claimed that his father gifted him House No. 18 through a written document titled 'Declaration of Oral Gift'. The sisters challenged it, claiming inheritance rights. Lower courts rejected the gift as unproved and unregistered.",
+        "instruction": "Decide whether an unregistered written declaration of an oral gift can validly transfer ownership of immovable property to the donee."
+    },
+    {
+        "instruction": "Decide whether a plaintiff, who himself produced and exhibited a registered power of attorney, can succeed in a declaration suit without specifically challenging or seeking cancellation of that document.",
+        "input": "The plaintiff claimed he never appointed any attorney and alleged that the transfer of his plot was forged. During trial, he himself summoned the Sub-Registrar record and exhibited the registered power of attorney in favour of defendant No. 2. The plot was then sold to defendant No. 3 and later to defendant No. 1, who also constructed a house. The trial court dismissed the suit, the appellate court decreed it, and the High Court upheld the appellate decision.",
+        "output": "The Supreme Court held that the plaintiff failed to discharge his burden. Since he himself proved the registered power of attorney and did not specifically challenge or seek its cancellation, the statutory presumption attached to the registered document stood. The appellate and revisional courts were in error, and the trial court’s dismissal of the suit was restored."
+    },
+    {
+        "instruction": "Determine whether a sale mutation can stand when forensic evidence proves the thumb impression is forged and the suit is claimed to be time-barred.",
+        "input": "The petitioners’ predecessor purchased land through sale mutation No.727 attested on 13.06.1994. The respondent filed a suit in 2008 claiming the thumb impression on the mutation was not hers. A report from the Finger Print Bureau, Punjab, confirmed the thumb impression was forged. The trial court decreed the suit, the appeal and revision were dismissed, and the petitioners remained in possession.",
+        "output": "The Supreme Court held that the burden to prove the sale lay on the beneficiaries, which they failed to discharge. The forensic report conclusively proved the thumb impression was not of the respondent. The plea of limitation failed due to lack of proof of prior knowledge. The petition was dismissed with costs and compensatory costs, and possession was ordered to be handed over to the respondent."
+    },
+    {
+        "instruction": "Decide whether a tenant’s defence can be struck off and eviction ordered for failure to comply with an order to deposit tentative rent, despite disputes over ownership.",
+        "input": "The tenant challenged a Rent Controller’s order to deposit arrears and future rent, claiming the landlord’s ownership was disputed due to pending suits. Despite interim suspensions, the tenant failed to deposit rent within time and later deposited it after delay. The Rent Controller struck off the defence and ordered eviction, which was upheld by appellate and constitutional courts.",
+        "output": "The Supreme Court held that prior litigation had already settled the landlord–tenant relationship and the validity of the tentative rent order. Failure to timely comply justified striking off the defence. Delay was neither cured nor condoned. The petition was dismissed and leave to appeal was refused."
+    },
+    {
+        "instruction": "Determine whether an ex-parte eviction order should be upheld when a tenant denies the landlord–tenant relationship and claims ownership through an agreement to sell.",
+        "input": "Tenant defaulted on rent, failed to appear despite proper service, and later claimed to have purchased the premises from another alleged heir. He sought to set aside ex-parte proceedings and challenged the landlady’s title.",
+        "output": "The Court held that tenancy existed, service was valid, and denial of title does not justify continued possession. Ex-parte eviction was lawful, concurrent findings were upheld, and leave to appeal was refused."
+    },
+    {
+        "instruction": "Decide whether courts can order the government to provide a new access passage through acquired land when no easement right was pleaded or proven.",
+        "input": "Private owners claimed their commercial land’s access and frontage were blocked by government construction on land acquired for a highway project and sought a court-ordered passage.",
+        "output": "The Court held that no existing passage or easement was proved and courts cannot create new rights. The direction to provide a 20-foot passage was set aside and government’s appeal was allowed."
+    },
+    {
+        "instruction": "Determine whether objections to a court auction can be entertained under Order XXI Rule 84 CPC without depositing the required amount under Rule 90.",
+        "input": "Co-owner objected to auction of inherited property alleging fraud but filed objections under Rule 84 and failed to deposit 20% of sale proceeds as directed by the court.",
+        "output": "The Court held that objections against auction lie under Order XXI Rule 90 CPC, not Rule 84, and deposit of up to 20% of the sale amount after court’s direction is mandatory. Since the petitioner failed to deposit the amount, the objections were rightly dismissed and leave to appeal was refused."
+    },
+    {
+        "instruction": "Decide whether post-arrest bail should be granted in a NAB reference involving alleged assets beyond known sources of income and benami properties.",
+        "input": "A former federal and provincial minister sought post-arrest bail in a NAB case alleging he and his family/benamidars held assets disproportionate to known income; NAB rejected declared sale deed values and alleged benami ownership without showing possession or profit control, and the trial was delayed for over two years without a final reference.",
+        "output": "The Court granted bail, holding that no sufficient incriminating material existed to show benami ownership or disproportionate assets on a lawful basis, NAB failed to prove possession or benefit from alleged benami properties, property values were improperly assessed, agricultural income was ignored, and inordinate trial delay violated fundamental rights; bail was allowed with a bond of Rs.10 million while clarifying findings were tentative."
+    },
+    {
+        "instruction": "Decide whether pre-arrest bail should be granted in a case involving alleged mischief by destruction of standing crops under Section 440 PPC.",
+        "input": "An FIR alleged that the accused plowed and destroyed the complainant’s mint crop causing financial loss; the accused claimed ownership and possession of the disputed land, argued a pending civil suit existed prior to the FIR, alleged mala fide intent, and sought pre-arrest bail after successive applications were dismissed by the High Court.",
+        "output": "The Supreme Court granted pre-arrest bail, holding that the dispute involved pending civil litigation over title, the possibility of mala fides and false implication could not be ruled out, the case called for further inquiry under Section 497(2) Cr.P.C., and set aside the High Court’s order while confirming interim pre-arrest bail granted earlier."
+    },
+    {
+        "instruction": "Decide whether pre-arrest bail should be granted in a crop theft case under Section 379 PPC where land ownership and possession are disputed.",
+        "input": "The accused was alleged to have cut and stolen wheat worth Rs.50,000 from the complainant’s land; the FIR was lodged after 16 days, the accused claimed the land was possessed by his aunt, co-accused were declared innocent or granted bail, and the High Court refused pre-arrest bail.",
+        "output": "The Supreme Court granted pre-arrest bail, holding that delayed FIR, disputed land possession, general role attribution, and the rule of consistency created a case of further inquiry under Section 497(2) Cr.P.C., and set aside the High Court’s order."
+    },
+    {
+        "instruction": "Determine whether pre-arrest bail should be granted in a fraud and forgery case involving alleged misuse of signed blank stamp papers.",
+        "input": "The accused allegedly obtained signatures on blank stamp papers for a lease and later converted them into a sale agreement, FIR was lodged after about five months, and civil suits between the parties were already pending.",
+        "output": "The Supreme Court granted pre-arrest bail, holding that unexplained delay in FIR and pending civil disputes created a case of further inquiry, and set aside the High Court’s refusal of bail."
+    },
+    {
+        "instruction": "Decide whether pre-arrest bail should be granted when a property dispute leads to alleged trespass, firing, and demolition, and civil litigation is already pending.",
+        "input": "The accused was nominated for trespassing on a disputed plot, demolishing a wall, and firing shots, but claimed ownership of the plot with title documents and pointed to pending civil litigation.",
+        "output": "The Supreme Court granted pre-arrest bail, holding that the case involved further inquiry due to the pending civil dispute, questionable applicability of serious sections, and the constitutional right to liberty."
+    },
+    {
+        "instruction": "Analyze whether a dishonoured cheque attracts Section 489-F PPC when it is issued as security rather than for repayment of a loan or legal obligation, and decide bail.",
+        "input": "FIR under Section 489-F PPC alleged that the accused issued a cheque which was dishonoured due to a dormant account, but the defence claimed the cheque was only a security under a property agreement.",
+        "output": "The Supreme Court granted pre-arrest bail, holding that the cheque appeared to be a guarantee, not for repayment of a debt or legal obligation, making the case one of further inquiry."
+    },
+    {
+        "instruction": "Determine the steps required to complete pending rental compensation payments and finalize the rehabilitation mechanism for dispossessed affectees under court supervision.",
+        "input": "Court order requiring distribution of pending cheques to 461 remaining affectees and a government decision between cash compensation or allotment of alternate plots with construction costs.",
+        "output": "Authorities were directed to publish notices, provide the pending list to counsel, and submit a report within 15 days with a clear timeline for implementing one or both rehabilitation options."
+    },
+    {
+        "instruction": "Identify the legal issues arising from DHA’s taking of possession without clear title and outline the Court’s immediate protective directions.",
+        "input": "Supreme Court order examining DHA Lahore’s possession of disputed land, lack of title, unaudited status, and illegal notifications extending controlled/specifed areas.",
+        "output": "Court issued notices to federal/provincial authorities and Auditor General, required public warnings, prohibited sale/advertisement of un-acquired land, and fixed the matter for further constitutional review."
+    },
+    {
+        "instruction": "Explain the Supreme Court’s directions regarding illegal state land allotments, no-go areas, and enforcement failures by provincial authorities.",
+        "input": "Suo Motu proceedings concerning illegal allotment and regularization of Sindh state land, police inaction in no-go areas, land grabbing, and enforcement of earlier Supreme Court orders.",
+        "output": "Court directed detailed reports from land and revenue departments, ordered audit and inquiry into illegal allotments, demanded affidavits from police on no-go areas, issued notices to authorities, and mandated strict enforcement against land grabbing and lawless zones."
+    },
+    {
+        "instruction": "Summarize the Supreme Court’s clarification and directions regarding the ban on mutation and transfer of state land and actions against land grabbing.",
+        "input": "Order in C.R.P. No. 2-K/2014 concerning clarification of restraint orders on mutation of state land, leasing to government agencies, and court directions to Sindh authorities on land grabbing and enforcement.",
+        "output": "Court clarified that the restraint applies only to state land, allowed normal mutation for private land needed by the State, directed Sindh officials to submit reports on reclaimed land, FIRs, tribunals and anti-encroachment actions, and issued further instructions on police postings and governance."
+    },
+    {
+        "instruction": "Explain the Supreme Court’s directions regarding land grabbing, anti-encroachment actions, and pending reports in Sindh.",
+        "input": "Order discussing reports by Board of Revenue Sindh identifying illegal occupation of government land, issuance of notices under Sindh Public Property (Removal of Encroachment) Act 2010, and directions for further reporting and hearings.",
+        "output": "Court noted identification of illegal occupation of thousands of acres via GIS, ordered detailed reporting on issued notices and their legal status, summoned Anti-Encroachment Police head for progress report, scheduled review before a larger bench, and directed senior police officer to appear over alleged non-compliance with suspension orders."
+    },
+    {
+        "instruction": "Summarize the Supreme Court’s directions regarding land grabbing, land allotments, police postings, and compliance actions in Sindh.",
+        "input": "Order in SMC No. 16/2011 etc. dealing with multiple CMAs relating to land encroachments, government leases, police transfers (Bashir Memon, Rao Anwar), industrial land allotments, and court-monitored compliance.",
+        "output": "The Court recalled earlier posting restrictions for a DIG, noted improved security at Abdullah Shah Ghazi’s shrine, demanded detailed reports on Karachi targeted operations, clarified that the ban on land allotment does not block bona fide public-interest projects, summoned senior revenue and district officials over delayed industrial land possession, ordered inquiries into re-encroached forest land, referred allegations of illegal land allotment to a Sessions Judge, demanded accurate reporting of total encroached land and retrieved land, and disposed of multiple CMAs after directions or clarifications."
+    },
+    {
+        "instruction": "Explain the Supreme Court’s directions regarding encroached land, forest land protection, and access issues to industrial land.",
+        "input": "Order in CMA No. 206-K/2014, CMA No. 257-K/2014, and CMA No. 3969/2013 concerning retrieval of encroached land, forest land protection, and access road for industrial plot near Port Qasim.",
+        "output": "The Court was informed that about 59,803 acres of land were encroached and only 2,864 acres retrieved, granting six months to vacate the remaining land; confirmed that 1,446 acres of forest land had been recovered and directed police protection and budgeted afforestation; and ordered the Deputy Commissioner to arrange an access road or alternative solution for a 10-acre industrial plot near Port Qasim within two weeks."
+    }
+]

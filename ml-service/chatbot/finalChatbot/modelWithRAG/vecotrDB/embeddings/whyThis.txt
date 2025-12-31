@@ -1,0 +1,21 @@
+Why Qdrant Cloud is the best fit
+
+It offers a free forever cluster with no credit card required. 
+Qdrant
++2
+Qdrant
++2
+
+The free tier specs: 1 GB storage, single node (0.5 vCPU, 4 GB disk) and supports around ~1 million 768-dimensional vectors according to its documentation. 
+Qdrant
++1
+
+You get full managed service: you don’t have to set up infrastructure, so you can focus on your project. 
+Qdrant
++1
+
+Good fit for your scenario: since you’re working with a finite (chunked) corpus of documents (legal property law text), you likely don’t need billion-vectors scale initially. The free tier is quite enough to start prototyping and what you described (RAG + citations) is very feasible under those limits.3
+
+why this embedding model?
+all-MiniLM-L6-v2 = lightweight, free, accurate-enough for prototypes and mid-scale apps.
+It’s the best starting point for local or free-tier RAG projects like yours.
