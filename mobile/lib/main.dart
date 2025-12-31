@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/chatbot_page.dart';
+import 'screens/chatbot_screen.dart';
 import 'screens/splash_screen.dart';
 
 void main() {

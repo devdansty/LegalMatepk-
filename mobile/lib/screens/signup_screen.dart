@@ -1,8 +1,83 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'signin_screen.dart';
 
-class SignUpScreen extends StatelessWidget {
+class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
+
+  @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmController = TextEditingController();
+
+  bool loading = false;
+
+  Future<void> signup() async {
+    if (passwordController.text != confirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Passwords do not match")),
+      );
+      return;
+    }
+
+    setState(() => loading = true);
+
+    final url = Uri.parse('http://192.168.100.147:3000/api/users/signup');
+    final body = jsonEncode({
+      "display_name": nameController.text,
+      "email": emailController.text,
+      "phone": phoneController.text, // include phone
+      "password": passwordController.text,
+      "preferred_language": "ur"
+    });
+
+    try {
+      final res = await http.post(url,
+          headers: {"Content-Type": "application/json"}, body: body);
+
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 201) {
+        // ✅ Show dialog instead of immediate navigation
+        showDialog(
+          context: context,
+          barrierDismissible: false, // prevent dismissing by tapping outside
+          builder: (ctx) => AlertDialog(
+            title: const Text("Signup Successful ✅"),
+            content: const Text("Your account has been created."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop(); // close dialog
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SignInScreen()),
+                  );
+                },
+                child: const Text("Login"),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(data['error'] ?? 'Signup failed')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Server error")));
+    } finally {
+      setState(() => loading = false);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -28,26 +103,21 @@ class SignUpScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.black54),
               ),
               const SizedBox(height: 40),
-              TextField(decoration: const InputDecoration(labelText: "Full Name")),
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: "Full Name")),
               const SizedBox(height: 16),
-              TextField(decoration: const InputDecoration(labelText: "Email")),
+              TextField(controller: emailController, decoration: const InputDecoration(labelText: "Email")),
               const SizedBox(height: 16),
-              TextField(decoration: const InputDecoration(labelText: "Phone Number")),
+              TextField(controller: phoneController, decoration: const InputDecoration(labelText: "Phone Number")),
               const SizedBox(height: 16),
-              TextField(
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: "Password")),
+              TextField(controller: passwordController, obscureText: true, decoration: const InputDecoration(labelText: "Password")),
               const SizedBox(height: 16),
-              TextField(
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: "Confirm Password")),
+              TextField(controller: confirmController, obscureText: true, decoration: const InputDecoration(labelText: "Confirm Password")),
               const SizedBox(height: 30),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(context,
-                      MaterialPageRoute(builder: (_) => const SignInScreen()));
-                },
-                child: const Text("Sign Up"),
+                onPressed: loading ? null : signup,
+                child: loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("Sign Up"),
               ),
             ],
           ),
