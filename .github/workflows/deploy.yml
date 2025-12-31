@@ -1,0 +1,38 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Backend Docker Image
+        run: docker build -f docker/Dockerfile.backend -t backend:latest .
+
+      - name: Build Frontend Docker Image
+        run: docker build -f docker/Dockerfile.frontend -t frontend:latest .
+
+      # Optional: Push to Docker Hub (replace USERNAME/REPO)
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Backend
+        run: docker tag backend:latest USERNAME/backend:latest
+      - run: docker push USERNAME/backend:latest
+
+      - name: Push Frontend
+        run: docker tag frontend:latest USERNAME/frontend:latest
+      - run: docker push USERNAME/frontend:latest

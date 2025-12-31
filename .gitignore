@@ -1,0 +1,25 @@
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Environment
+.env
+
+# Flutter / Dart
+.pub/
+build/
+*.lock
+flutter/generated*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+logs/
+*.log

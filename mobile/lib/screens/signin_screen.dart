@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
-import 'chatbot_page.dart';
+import 'chatbot_screen.dart';
+import 'home_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -48,12 +49,12 @@ class _SignInScreenState extends State<SignInScreen> {
         }
 
         // Navigate to ChatBotPage (preserve your UI/navigation behavior)
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const ChatBotPage()),
-          );
-        }
+       if (mounted) {
+       Navigator.pushReplacement(
+       context,
+      MaterialPageRoute(builder: (_) => const LegalMateHome()), // Changed from ChatBotPage
+  );
+}
       } else {
         final errMsg = (data is Map && (data['error'] != null))
             ? data['error'].toString()
@@ -155,10 +156,10 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: TextButton(
                   onPressed: () {
                     Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ChatBotPage()),
-                    );
-                  },
+                    context,
+                  MaterialPageRoute(builder: (_) => const LegalMateHome()), // Changed from ChatBotPage
+                   );
+              },
                   child: const Text(
                     "Continue as Guest",
                     style: TextStyle(color: Colors.black54),

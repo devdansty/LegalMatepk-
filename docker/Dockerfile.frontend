@@ -1,0 +1,19 @@
+# Use Flutter SDK image
+FROM cirrusci/flutter:stable
+
+# Set working directory
+WORKDIR /app
+
+# Copy Flutter project files
+COPY frontend/ .
+
+# Get dependencies
+RUN flutter pub get
+
+# Build web release (or APK if mobile)
+RUN flutter build web
+
+# Serve using simple HTTP server
+RUN flutter pub global activate webdev
+EXPOSE 5000
+CMD ["flutter", "run", "-d", "web-server", "--web-port=5000", "--web-hostname=0.0.0.0"]
