@@ -174,7 +174,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
       backgroundColor: offWhite,
       appBar: AppBar(
         title: const Text(
-          'LegalMate Chatbot',
+          'Legal Chatbot',
           style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,

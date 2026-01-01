@@ -45,17 +45,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final data = jsonDecode(res.body);
 
       if (res.statusCode == 201) {
-        // ✅ Show dialog instead of immediate navigation
         showDialog(
           context: context,
-          barrierDismissible: false, // prevent dismissing by tapping outside
+          barrierDismissible: false, 
           builder: (ctx) => AlertDialog(
             title: const Text("Signup Successful ✅"),
             content: const Text("Your account has been created."),
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(ctx).pop(); // close dialog
+                  Navigator.of(ctx).pop(); 
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (_) => const SignInScreen()),
@@ -90,7 +89,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                "Create Account ✨",
+                "Create Account ",
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,

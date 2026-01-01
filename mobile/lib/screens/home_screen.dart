@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
-// Import your actual screen files here
-import 'chatbot_screen.dart'; // Ensure this file contains the class 'ChatBotPage'
-import 'ocr_screen.dart';     // Ensure this file contains the class 'OcrScreen'
+import 'chatbot_screen.dart'; 
+import 'ocr_screen.dart';     
 import 'signin_screen.dart';
 
 class LegalMateHome extends StatefulWidget {
@@ -18,7 +16,7 @@ class LegalMateHome extends StatefulWidget {
 
 class _LegalMateHomeState extends State<LegalMateHome> {
   int _selectedIndex = 0;
-  bool _isLoading = false; // Added missing variable
+  bool _isLoading = false; 
   final FlutterSecureStorage secureStorage = const FlutterSecureStorage(); // Added missing instance
 
   static const Color darkGreen = Color(0xFF004B23);
