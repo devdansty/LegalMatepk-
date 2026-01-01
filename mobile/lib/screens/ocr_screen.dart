@@ -9,6 +9,8 @@ class OcrScreen extends StatefulWidget {
   State<OcrScreen> createState() => _OcrScreenState();
 }
 
+
+
 class _OcrScreenState extends State<OcrScreen> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();

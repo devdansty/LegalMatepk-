@@ -128,7 +128,7 @@ class _LegalMateHomeState extends State<LegalMateHome> {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins( // Using GoogleFonts for Poppins
                     color: darkGreen,
-                    fontSize: 33,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
