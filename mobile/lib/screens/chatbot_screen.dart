@@ -59,7 +59,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"message": message, "session_id": "session-1"}),
       )
-          .timeout(const Duration(seconds: 20));
+          .timeout(const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
@@ -129,7 +129,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
         });
       });
     } else {
-      _showError("Speech recognition is not available on this device.");
+      _showError("Speech recognition is not available for now.");
     }
   }
 
