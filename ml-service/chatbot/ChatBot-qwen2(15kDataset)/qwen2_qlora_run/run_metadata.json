@@ -1,0 +1,53 @@
+{
+  "config": {
+    "model_name_or_path": "Qwen/Qwen2.5-1.5B-Instruct",
+    "data_path": "C:\\Haroon-Data\\code\\fyp\\application\\LegalMate.pk\\docs\\dataForTaining-chatBot\\updatedWork\\finalFile\\final_dataset.jsonl",
+    "output_dir": "C:\\Haroon-Data\\code\\fyp\\application\\LegalMate.pk\\ml-service\\chatbot\\ChatBot-qwen2(15kDataset)\\qwen2_qlora_run",
+    "seed": 42,
+    "total_train_samples": 5000,
+    "validation_split_ratio": 0.1,
+    "num_train_epochs": 2,
+    "learning_rate": 2e-05,
+    "micro_batch_size": 1,
+    "gradient_accumulation_steps": 16,
+    "weight_decay": 0.0,
+    "lr_scheduler_type": "cosine",
+    "warmup_ratio": 0.1,
+    "max_seq_length": 2048,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.1,
+    "logging_steps": 20,
+    "eval_steps": 200,
+    "save_steps": 200,
+    "save_total_limit": 5,
+    "generation_max_new_tokens": 256,
+    "generation_temperature": 0.2,
+    "generation_top_p": 0.95,
+    "use_wandb": false,
+    "report_to": [
+      "tensorboard"
+    ],
+    "device_map": "auto",
+    "load_in_4bit": true,
+    "bnb_4bit_use_double_quant": true,
+    "bnb_4bit_quant_type": "nf4",
+    "resume_from_checkpoint": null
+  },
+  "hardware": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python_version": "3.10.11",
+    "torch_version": "2.5.1+cu121",
+    "cuda_available": true,
+    "cuda_device_count": 1,
+    "cuda_device_name": "NVIDIA GeForce RTX 3060",
+    "cuda_memory_total_GB": 12.0
+  },
+  "trainable_params": 18464768,
+  "total_params": 907081216,
+  "date": "2025-12-25T13:35:32.003284Z",
+  "dataset_counts": {
+    "train": 4500,
+    "eval": 500
+  }
+}
