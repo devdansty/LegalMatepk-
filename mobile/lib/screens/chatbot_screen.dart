@@ -1,9 +1,10 @@
+// dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
+import '../services/STT.dart';
 import 'signin_screen.dart';
 
 class ChatBotPage extends StatefulWidget {
@@ -18,18 +19,27 @@ class _ChatBotPageState extends State<ChatBotPage> {
   final List<Map<String, String>> _messages = [];
   final ScrollController _scrollController = ScrollController();
 
-  final stt.SpeechToText _speech = stt.SpeechToText();
+  final STTService _sttService = STTService();
   final FlutterTts _flutterTts = FlutterTts();
 
   bool _isListening = false;
   bool _isLoading = false;
-  String _errorMessage = ''; // new error state
-  Timer? _errorTimer; // timer to auto-hide banner
+  String _errorMessage = '';
 
-  // <<<<<<<<<<<<<<<<< IMPORTANT: change this to your Node server URL >>>>>>>>>>>>>>>>>
+  Timer? _silenceTimer;
+  Timer? _errorTimer;
+  final Duration _silenceDuration = const Duration(seconds: 10);
+
+  // STT stability buffers
+  String _lastRecognizedText = '';
+  String _sessionPrefix = '';
+
+  // 🌍 HYBRID LANGUAGE MODE
+  String _voiceMode = "auto"; // auto | ur | en
+
   final String nodeApiUrl = 'http://192.168.0.108:3000/api/chatbot';
-  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+  // ================= ERROR =================
   void _showError(String msg, {Duration duration = const Duration(seconds: 4)}) {
     _errorTimer?.cancel();
     setState(() => _errorMessage = msg);
@@ -38,77 +48,45 @@ class _ChatBotPageState extends State<ChatBotPage> {
     });
   }
 
+  // ================= SEND =================
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
     setState(() {
       _messages.add({"role": "user", "text": message});
       _isLoading = true;
-      _errorMessage = ''; // clear previous errors when sending
     });
 
     _controller.clear();
     _scrollToBottom();
 
     try {
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      final response = await http
-          .post(
+      final response = await http.post(
         Uri.parse(nodeApiUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"message": message, "session_id": "session-1"}),
-      )
-          .timeout(const Duration(seconds: 60));
+      );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
+      final botReply = (data['reply'] ?? '').toString();
 
-        final bool ok = data['success'] == true || data['success'] == null;
-        final String botReply = (data['reply'] ?? data['message'] ?? '').toString();
-
-        if (ok && botReply.isNotEmpty) {
-          setState(() {
-            _messages.add({"role": "bot", "text": botReply});
-            _isLoading = false;
-            _errorMessage = '';
-          });
-          _scrollToBottom();
-          // auto TTS disabled: user must tap play button to hear replies
-        } else {
-          final fallback = data['reply']?.toString() ??
-              data['message']?.toString() ??
-              'Sorry, I did not get a response.';
-          setState(() {
-            _messages.add({"role": "bot", "text": fallback});
-            _isLoading = false;
-            _errorMessage = '';
-          });
-          _scrollToBottom();
-          // auto TTS disabled
-        }
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
-        _showError("Server error: ${response.statusCode}");
-        _scrollToBottom();
-      }
-    } catch (e) {
       setState(() {
+        _messages.add({"role": "bot", "text": botReply});
         _isLoading = false;
       });
-      _showError("Network error: ${e.toString()}");
+
       _scrollToBottom();
+    } catch (_) {
+      setState(() => _isLoading = false);
+      _showError("Network error");
     }
   }
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 200), () {
       if (_scrollController.hasClients) {
-        final position = _scrollController.position.maxScrollExtent;
         _scrollController.animateTo(
-          position,
+          _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -116,296 +94,262 @@ class _ChatBotPageState extends State<ChatBotPage> {
     });
   }
 
+  // ================= START LISTENING =================
   Future<void> _startListening() async {
-    bool available = await _speech.initialize(
-      onStatus: (status) {},
-      onError: (error) {},
-    );
-    if (available) {
-      setState(() => _isListening = true);
-      _speech.listen(onResult: (result) {
-        setState(() {
-          _controller.text = result.recognizedWords;
-        });
-      });
-    } else {
-      _showError("Speech recognition is not available for now.");
-    }
-  }
+    if (_isListening) return;
 
-  void _stopListening() {
-    _speech.stop();
-    setState(() => _isListening = false);
-  }
+    setState(() => _isListening = true);
 
-  Future<void> _speak(String text) async {
+    String lang = "en_US";
+    if (_voiceMode == "ur") lang = "ur_PK";
+    if (_voiceMode == "en") lang = "en_US";
+    if (_voiceMode == "auto") lang = "en_US";
+
+    // Save previous text for concatenation across sessions
+    _sessionPrefix = _controller.text.trim();
+    _lastRecognizedText = '';
+
     try {
-      await _flutterTts.stop();
-      await _flutterTts.speak(text);
-    } catch (e) {
-      // ignore
+      await _sttService.startListening(
+        languageCode: lang,
+        onResult: (text) async {
+          if (!mounted) return;
+
+          // Prevent rapid duplicate partial spam only
+          if (text == _lastRecognizedText &&
+              _silenceTimer != null &&
+              _silenceTimer!.isActive) {
+            return;
+          }
+
+          _lastRecognizedText = text;
+
+          // Combine with previous session text
+          final combined = _sessionPrefix.isEmpty
+              ? text
+              : "$_sessionPrefix $text";
+
+          setState(() {
+            _controller.text = combined;
+            _controller.selection = TextSelection.fromPosition(
+              TextPosition(offset: _controller.text.length),
+            );
+          });
+
+          _resetSilenceTimer();
+
+          // 🌍 Optional Urdu auto detect
+          if (_voiceMode == "auto" && _containsUrdu(text)) {
+            await _switchToUrdu();
+          }
+
+          // 🔁 CRITICAL FIX: Restart listening for next phrase
+          if (_isListening) {
+            _sttService.stopListening();
+            await Future.delayed(const Duration(milliseconds: 250));
+
+            if (_isListening) {
+              _startListening(); // silent restart
+            }
+          }
+        },
+      );
+
+      _resetSilenceTimer();
+    } catch (_) {
+      setState(() => _isListening = false);
+      _showError("Mic failed to start");
     }
   }
 
-  void _clearChat() {
-    setState(() {
-      _messages.clear();
-      _errorMessage = '';
+  void _resetSilenceTimer() {
+    _silenceTimer?.cancel();
+    _silenceTimer = Timer(_silenceDuration, () {
+      _stopListening();
     });
+  }
+
+  // ================= URDU SWITCH =================
+  Future<void> _switchToUrdu() async {
+    // ✅ DO NOT restart mic if already switched once
+    if (!_isListening) return;
+
+    // Prevent multiple Urdu switches
+    if (_voiceMode == "ur") return;
+
+    // Lock mode to Urdu but DO NOT restart STT session
+    _voiceMode = "ur";
+  }
+
+  bool _containsUrdu(String text) {
+    return RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+  }
+
+  // ================= STOP LISTENING =================
+  void _stopListening() {
+    _silenceTimer?.cancel();
+    _sttService.stopListening();
+    _lastRecognizedText = '';
+
+    if (mounted) {
+      setState(() => _isListening = false);
+    }
+  }
+
+  // ================= TTS =================
+  Future<void> _speak(String text) async {
+    await _flutterTts.stop();
+    await _flutterTts.speak(text);
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
-    _speech.stop();
+    _sttService.stopListening();
     _flutterTts.stop();
+    _silenceTimer?.cancel();
     _errorTimer?.cancel();
     super.dispose();
   }
 
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
-    const Color darkGreen = Color(0xFF004B23);
-    const Color offWhite = Color(0xFFF8F9F9);
-    const Color bubbleGreen = Color(0xFF006400);
+    const bubbleGreen = Color(0xFF006400);
 
     return Scaffold(
-      backgroundColor: offWhite,
       appBar: AppBar(
-        title: const Text(
-          'Legal Chatbot',
-          style: TextStyle(color: Colors.white),
-        ),
-        centerTitle: true,
-        backgroundColor: darkGreen,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onSelected: (value) async {
-              switch (value) {
-                case 'logout':
-                  setState(() => _isLoading = true);
-
-                  try {
-                    // read access token from secure storage
-                    final accessToken = await secureStorage.read(key: 'accessToken');
-
-                    final headers = <String, String>{
-                      'Content-Type': 'application/json',
-                      if (accessToken != null && accessToken.isNotEmpty)
-                        'Authorization': 'Bearer $accessToken',
-                    };
-
-                    final response = await http.post(
-                      Uri.parse('http://192.168.100.147:3000/api/sessions/logout'),
-                      headers: headers,
-                    );
-
-                    if (response.statusCode == 200) {
-                      if (mounted) {
-                        // clear chat messages on logout (optional)
-                        _messages.clear();
-
-                        // delete stored access token
-                        await secureStorage.delete(key: 'accessToken');
-
-                        setState(() => _isLoading = false);
-
-                        // Navigate to SignInScreen and remove previous routes
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const SignInScreen()),
-                              (route) => false,
-                        );
-                      }
-                    } else {
-                      setState(() => _isLoading = false);
-                      // if server sends JSON, try to show its error message
-                      String serverMsg = 'Logout failed: ${response.statusCode}';
-                      try {
-                        final Map<String, dynamic> body = jsonDecode(response.body);
-                        if (body['error'] != null) serverMsg = body['error'].toString();
-                      } catch (_) {}
-                      _showError(serverMsg);
-                    }
-                  } catch (e) {
-                    setState(() => _isLoading = false);
-                    _showError('Network error during logout');
-                  }
-                  break;
-                case 'settings':
-                  _showError('Settings clicked'); // dummy action
-                  break;
-
-                case 'profile':
-                  _showError('Profile clicked'); // dummy action
-                  break;
-
-                case 'chat':
-                  _showError('Chat clicked'); // dummy action
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              const PopupMenuItem(value: 'logout', child: Text('Logout')),
-              const PopupMenuItem(value: 'settings', child: Text('Settings')),
-              const PopupMenuItem(value: 'profile', child: Text('Profile')),
-              const PopupMenuItem(value: 'chat', child: Text('Chat')),
-            ],
-          )
-        ],
+        title: const Text('Legal Chatbot'),
+        backgroundColor: const Color(0xFF004B23),
       ),
-
-
       body: Column(
         children: [
-          // Top error banner (auto-dismisses)
-          if (_errorMessage.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.red.shade600,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _errorMessage,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () {
-                        _errorTimer?.cancel();
-                        setState(() => _errorMessage = '');
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isUser = message["role"] == "user";
-                final text = message["text"] ?? "";
-                final innerPadding = isUser
-                    ? const EdgeInsets.all(12)
-                    : const EdgeInsets.fromLTRB(12, 12, 44, 12); // space for play button
-
-                return Container(
-                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        padding: innerPadding,
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                        decoration: BoxDecoration(
-                          color: isUser ? bubbleGreen : Colors.grey.shade300,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(16),
-                            topRight: const Radius.circular(16),
-                            bottomLeft: isUser ? const Radius.circular(16) : const Radius.circular(0),
-                            bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(16),
-                          ),
-                        ),
-                        child: Text(
-                          text,
-                          style: TextStyle(
-                            color: isUser ? Colors.white : Colors.black87,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-
-                      // Play button for bot messages (small, top-right)
-                      if (!isUser && text.isNotEmpty)
-                        Positioned(
-                          top: -6,
-                          right: -6,
-                          child: GestureDetector(
-                            onTap: () => _speak(text),
-                            child: CircleAvatar(
-                              radius: 14,
-                              backgroundColor: bubbleGreen,
-                              child: const Icon(Icons.play_arrow, size: 16, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: CircularProgressIndicator(color: Color(0xFF006400)),
-            ),
+          _buildLanguageToggle(),
+          Expanded(child: _buildChatList()),
+          if (_isLoading) const CircularProgressIndicator(),
           _buildInputBar(),
         ],
       ),
     );
   }
 
-  Widget _buildInputBar() {
-    const Color bubbleGreen = Color(0xFF006400);
-    const Color offWhite = Color(0xFFF8F9F9);
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Container(
-          decoration: BoxDecoration(
-            color: offWhite,
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                icon: Icon(_isListening ? Icons.mic : Icons.mic_none, color: bubbleGreen),
-                onPressed: _isListening ? _stopListening : _startListening,
-              ),
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.newline,
-                  minLines: 1,
-                  maxLines: null, // allows the TextField to grow vertically and wrap text
-                  decoration: const InputDecoration(
-                    hintText: "Ask LegalMate...",
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.send, color: bubbleGreen),
-                onPressed: () => _sendMessage(_controller.text),
-              ),
-            ],
-          ),
-        ),
+  // ================= LANGUAGE TOGGLE =================
+  Widget _buildLanguageToggle() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          _langChip("Auto", "auto"),
+          _langChip("اردو", "ur"),
+          _langChip("English", "en"),
+        ],
       ),
+    );
+  }
+
+  Widget _langChip(String label, String value) {
+    final selected = _voiceMode == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => setState(() => _voiceMode = value),
+    );
+  }
+
+  // ================= CHAT =================
+  Widget _buildChatList() {
+    const bubbleGreen = Color(0xFF006400);
+
+    return ListView.builder(
+      controller: _scrollController,
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        final msg = _messages[index];
+        final isUser = msg["role"] == "user";
+        final text = msg["text"] ?? "";
+
+        return Align(
+          alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isUser ? bubbleGreen : Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Stack(
+              children: [
+                Text(text,
+                    style: TextStyle(
+                        color: isUser ? Colors.white : Colors.black)),
+                if (!isUser)
+                  Positioned(
+                    right: -5,
+                    top: -5,
+                    child: GestureDetector(
+                      onTap: () => _speak(text),
+                      child: const CircleAvatar(
+                        radius: 12,
+                        backgroundColor: bubbleGreen,
+                        child: Icon(Icons.play_arrow,
+                            size: 14, color: Colors.white),
+                      ),
+                    ),
+                  )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ================= INPUT BAR =================
+  Widget _buildInputBar() {
+    const bubbleGreen = Color(0xFF006400);
+
+    return Column(
+      children: [
+        if (_isListening) _buildListeningLabel(),
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(
+                  _isListening ? Icons.mic : Icons.mic_none,
+                  color: bubbleGreen),
+              onPressed:
+              _isListening ? _stopListening : _startListening,
+            ),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                decoration:
+                const InputDecoration(hintText: "Ask LegalMate..."),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.send, color: bubbleGreen),
+              onPressed: () => _sendMessage(_controller.text),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildListeningLabel() {
+    String label = "🎤 Listening...";
+
+    if (_voiceMode == "auto") label = "🎤 Auto detecting...";
+    if (_voiceMode == "ur") label = "🎤 Listening in Urdu...";
+    if (_voiceMode == "en") label = "🎤 Listening in English...";
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(label,
+          style: const TextStyle(fontSize: 12, color: Colors.grey)),
     );
   }
 }
