@@ -30,14 +30,26 @@ class _ChatBotPageState extends State<ChatBotPage> {
   Timer? _errorTimer;
   final Duration _silenceDuration = const Duration(seconds: 10);
 
-  // STT stability buffers
   String _lastRecognizedText = '';
   String _sessionPrefix = '';
 
-  // 🌍 HYBRID LANGUAGE MODE
   String _voiceMode = "auto"; // auto | ur | en
 
   final String nodeApiUrl = 'http://192.168.0.108:3000/api/chatbot';
+
+  // ================= INIT =================
+  @override
+  void initState() {
+    super.initState();
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setSpeechRate(0.45);
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.awaitSpeakCompletion(true);
+  }
 
   // ================= ERROR =================
   void _showError(String msg, {Duration duration = const Duration(seconds: 4)}) {
@@ -94,7 +106,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
     });
   }
 
-  // ================= START LISTENING =================
+  // ================= STT =================
   Future<void> _startListening() async {
     if (_isListening) return;
 
@@ -103,9 +115,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
     String lang = "en_US";
     if (_voiceMode == "ur") lang = "ur_PK";
     if (_voiceMode == "en") lang = "en_US";
-    if (_voiceMode == "auto") lang = "en_US";
 
-    // Save previous text for concatenation across sessions
     _sessionPrefix = _controller.text.trim();
     _lastRecognizedText = '';
 
@@ -115,7 +125,6 @@ class _ChatBotPageState extends State<ChatBotPage> {
         onResult: (text) async {
           if (!mounted) return;
 
-          // Prevent rapid duplicate partial spam only
           if (text == _lastRecognizedText &&
               _silenceTimer != null &&
               _silenceTimer!.isActive) {
@@ -124,7 +133,6 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
           _lastRecognizedText = text;
 
-          // Combine with previous session text
           final combined = _sessionPrefix.isEmpty
               ? text
               : "$_sessionPrefix $text";
@@ -138,19 +146,14 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
           _resetSilenceTimer();
 
-          // 🌍 Optional Urdu auto detect
           if (_voiceMode == "auto" && _containsUrdu(text)) {
-            await _switchToUrdu();
+            _voiceMode = "ur";
           }
 
-          // 🔁 CRITICAL FIX: Restart listening for next phrase
           if (_isListening) {
             _sttService.stopListening();
             await Future.delayed(const Duration(milliseconds: 250));
-
-            if (_isListening) {
-              _startListening(); // silent restart
-            }
+            if (_isListening) _startListening();
           }
         },
       );
@@ -169,37 +172,82 @@ class _ChatBotPageState extends State<ChatBotPage> {
     });
   }
 
-  // ================= URDU SWITCH =================
-  Future<void> _switchToUrdu() async {
-    // ✅ DO NOT restart mic if already switched once
-    if (!_isListening) return;
-
-    // Prevent multiple Urdu switches
-    if (_voiceMode == "ur") return;
-
-    // Lock mode to Urdu but DO NOT restart STT session
-    _voiceMode = "ur";
-  }
-
   bool _containsUrdu(String text) {
     return RegExp(r'[\u0600-\u06FF]').hasMatch(text);
   }
 
-  // ================= STOP LISTENING =================
   void _stopListening() {
     _silenceTimer?.cancel();
     _sttService.stopListening();
     _lastRecognizedText = '';
-
-    if (mounted) {
-      setState(() => _isListening = false);
-    }
+    if (mounted) setState(() => _isListening = false);
   }
 
   // ================= TTS =================
   Future<void> _speak(String text) async {
-    await _flutterTts.stop();
-    await _flutterTts.speak(text);
+    if (text.trim().isEmpty) return;
+
+    try {
+      await _flutterTts.stop();
+
+      final language = _detectLanguage(text);
+      await _setVoice(language);
+
+      await _flutterTts.speak(text);
+    } catch (e) {
+      debugPrint("TTS Error: $e");
+    }
+  }
+
+  String _detectLanguage(String text) {
+    if (RegExp(r'[\u0600-\u06FF]').hasMatch(text)) return "ur";
+
+    final romanUrduWords = [
+      "hai","hain","kya","ka","ki","ke",
+      "aur","agar","yeh","wo","ap","aap",
+      "mein","kar","karna"
+    ];
+
+    final lower = text.toLowerCase();
+    for (var word in romanUrduWords) {
+      if (lower.contains(" $word ") ||
+          lower.startsWith("$word ") ||
+          lower.endsWith(" $word")) {
+        return "roman";
+      }
+    }
+
+    return "en";
+  }
+
+  Future<void> _setVoice(String languageType) async {
+    final voices = await _flutterTts.getVoices;
+    if (voices == null) return;
+
+    Map<String, dynamic>? selectedVoice;
+
+    if (languageType == "ur") {
+      selectedVoice = voices.firstWhere(
+            (voice) =>
+        (voice["locale"]?.toString().contains("ur") ?? false),
+        orElse: () => voices.first,
+      );
+      await _flutterTts.setLanguage("ur-PK");
+    } else {
+      selectedVoice = voices.firstWhere(
+            (voice) =>
+        (voice["locale"]?.toString().contains("en") ?? false),
+        orElse: () => voices.first,
+      );
+      await _flutterTts.setLanguage("en-US");
+    }
+
+    if (selectedVoice != null) {
+      await _flutterTts.setVoice({
+        "name": selectedVoice["name"],
+        "locale": selectedVoice["locale"],
+      });
+    }
   }
 
   @override
@@ -234,7 +282,6 @@ class _ChatBotPageState extends State<ChatBotPage> {
     );
   }
 
-  // ================= LANGUAGE TOGGLE =================
   Widget _buildLanguageToggle() {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -258,7 +305,6 @@ class _ChatBotPageState extends State<ChatBotPage> {
     );
   }
 
-  // ================= CHAT =================
   Widget _buildChatList() {
     const bubbleGreen = Color(0xFF006400);
 
@@ -306,7 +352,6 @@ class _ChatBotPageState extends State<ChatBotPage> {
     );
   }
 
-  // ================= INPUT BAR =================
   Widget _buildInputBar() {
     const bubbleGreen = Color(0xFF006400);
 
@@ -341,7 +386,6 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
   Widget _buildListeningLabel() {
     String label = "🎤 Listening...";
-
     if (_voiceMode == "auto") label = "🎤 Auto detecting...";
     if (_voiceMode == "ur") label = "🎤 Listening in Urdu...";
     if (_voiceMode == "en") label = "🎤 Listening in English...";
