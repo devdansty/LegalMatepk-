@@ -80,7 +80,48 @@ class _ChatBotPageState extends State<ChatBotPage> {
       );
 
       final data = jsonDecode(response.body);
-      final botReply = (data['reply'] ?? '').toString();
+      // final botReply = (data['reply'] ?? '').toString();
+
+      final List<String> dummyReplies = [
+
+        // --- Pure Urdu (Formal Legal Style) ---
+        "درخواست گزار کو مطلع کیا جاتا ہے کہ متعلقہ قانون کے تحت اپیل دائر کرنے کی مدت تیس دن ہے۔",
+        "عدالت اس نتیجے پر پہنچی ہے کہ فراہم کردہ شواہد ناکافی ہیں۔",
+        "قانونی کارروائی شروع کرنے سے پہلے نوٹس بھیجنا لازمی ہے۔",
+        "معاہدہ کی خلاف ورزی کی صورت میں ہرجانہ قابلِ ادا ہوگا۔",
+
+        // --- Pure Urdu (General) ---
+        "السلام علیکم! میں آپ کی کیسے مدد کر سکتا ہوں؟",
+        "براہ کرم اپنا سوال تفصیل سے بیان کریں۔",
+        "یہ ایک ڈمی جواب ہے جو ٹی ٹی ایس ٹیسٹنگ کے لیے استعمال کیا جا رہا ہے۔",
+        "آپ کا بہت شکریہ۔",
+
+        // --- Roman Urdu ---
+        "Assalam o Alaikum! Main aap ki kis tarah madad kar sakta hoon?",
+        "Yeh sirf testing ke liye dummy response hai.",
+        "Barah-e-karam apna sawal wazeh taur par likhain.",
+        "Agar aap chahein to main mazeed tafseel bhi de sakta hoon.",
+
+        // --- English ---
+        "Hello! How may I assist you today?",
+        "This is a dummy chatbot response for TTS testing.",
+        "Please provide more details about your legal issue.",
+        "Under the relevant law, you may file an appeal within thirty days.",
+
+        // --- Mixed Urdu + English (Realistic Chatbot Style) ---
+        "Aap ka case civil nature ka lagta hai. Aapko notice bhejna zaroori hoga.",
+        "According to Pakistani law, contract breach may result in damages.",
+        "Yeh legal information sirf rehnumai ke liye hai, final advice ke liye lawyer se rabta karein.",
+
+        // --- Long Response (To Test Continuous TTS Flow) ---
+        "پاکستان کے آئین کے تحت ہر شہری کو منصفانہ سماعت کا حق حاصل ہے، تاہم کسی بھی قانونی کارروائی سے پہلے متعلقہ دستاویزات اور شواہد کا جائزہ لینا ضروری ہوتا ہے۔",
+
+        // --- Numbered Clauses (Pause Testing) ---
+        "قانونی عمل کے مراحل درج ذیل ہیں: اول، نوٹس جاری کیا جائے گا۔ دوم، فریقین کو سماعت کا موقع دیا جائے گا۔ سوم، عدالت فیصلہ سنائے گی۔"
+      ];
+
+      dummyReplies.shuffle();
+      final botReply = dummyReplies.first;
 
       setState(() {
         _messages.add({"role": "bot", "text": botReply});
