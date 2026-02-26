@@ -15,6 +15,7 @@ class ChatBotPage extends StatefulWidget {
 }
 
 class _ChatBotPageState extends State<ChatBotPage> {
+  bool useDummyReplies = true; // 🔁 switch to false when backend is ready
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, String>> _messages = [];
   final ScrollController _scrollController = ScrollController();
@@ -60,40 +61,6 @@ class _ChatBotPageState extends State<ChatBotPage> {
     });
   }
 
-  // ================= SEND =================
-  Future<void> _sendMessage(String message) async {
-    if (message.trim().isEmpty) return;
-
-    setState(() {
-      _messages.add({"role": "user", "text": message});
-      _isLoading = true;
-    });
-
-    _controller.clear();
-    _scrollToBottom();
-
-    try {
-      final response = await http.post(
-        Uri.parse(nodeApiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"message": message, "session_id": "session-1"}),
-      );
-
-      final data = jsonDecode(response.body);
-      final botReply = (data['reply'] ?? '').toString();
-
-      setState(() {
-        _messages.add({"role": "bot", "text": botReply});
-        _isLoading = false;
-      });
-
-      _scrollToBottom();
-    } catch (_) {
-      setState(() => _isLoading = false);
-      _showError("Network error");
-    }
-  }
-
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 200), () {
       if (_scrollController.hasClients) {
@@ -105,6 +72,116 @@ class _ChatBotPageState extends State<ChatBotPage> {
       }
     });
   }
+
+  Future<void> _sendMessage(String message) async {
+    if (message.trim().isEmpty) return;
+
+    setState(() {
+      _messages.add({"role": "user", "text": message});
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    _controller.clear();
+    _scrollToBottom();
+
+    // ================= DUMMY MODE =================
+    if (useDummyReplies) {
+      await Future.delayed(const Duration(seconds: 1));
+
+      final List<String> dummyReplies = [
+        "السلام علیکم! میں آپ کی کیسے مدد کر سکتا ہوں؟",
+        "یہ ایک ٹیسٹ جواب ہے تاکہ ٹیکسٹ ٹو اسپیچ کو چیک کیا جا سکے۔",
+        "Yeh sirf testing ke liye dummy response hai.",
+        "Hello! This is a dummy reply for testing purposes.",
+        "درخواست گزار کو مطلع کیا جاتا ہے کہ اپیل کی مدت تیس دن ہے۔"
+      ];
+
+      dummyReplies.shuffle();
+      final botReply = dummyReplies.first;
+
+      setState(() {
+        _messages.add({"role": "bot", "text": botReply});
+        _isLoading = false;
+      });
+      _scrollToBottom();
+      return;
+    }
+
+    // ================= REAL API MODE =================
+    try {
+      final response = await http.post(
+        Uri.parse(nodeApiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"message": message, "session_id": "session-1"}),
+      ).timeout(const Duration(seconds: 60));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final botReply =
+        (data['reply'] ?? data['message'] ?? '').toString();
+
+        setState(() {
+          _messages.add({"role": "bot", "text": botReply});
+          _isLoading = false;
+        });
+
+        _scrollToBottom();
+      } else {
+        setState(() => _isLoading = false);
+        _showError("Server error: ${response.statusCode}");
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showError("Network error: ${e.toString()}");
+    }
+
+  }
+  // ================= SEND =================
+  // Future<void> _sendMessage(String message) async {
+  //   if (message.trim().isEmpty) return;
+  //
+  //   setState(() {
+  //     _messages.add({"role": "user", "text": message});
+  //     _isLoading = true;
+  //   });
+  //
+  //   _controller.clear();
+  //   _scrollToBottom();
+  //
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse(nodeApiUrl),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({"message": message, "session_id": "session-1"}),
+  //     );
+  //
+  //     final data = jsonDecode(response.body);
+  //     final botReply = (data['reply'] ?? '').toString();
+  //
+  //     setState(() {
+  //       _messages.add({"role": "bot", "text": botReply});
+  //       _isLoading = false;
+  //     });
+  //
+  //     _scrollToBottom();
+  //   } catch (_) {
+  //     setState(() => _isLoading = false);
+  //     _showError("Network error");
+  //   }
+  // }
+  //
+  // void _scrollToBottom() {
+  //   Future.delayed(const Duration(milliseconds: 200), () {
+  //     if (_scrollController.hasClients) {
+  //       _scrollController.animateTo(
+  //         _scrollController.position.maxScrollExtent,
+  //         duration: const Duration(milliseconds: 300),
+  //         curve: Curves.easeOut,
+  //       );
+  //     }
+  //   });
+  // }
 
   // ================= STT =================
   Future<void> _startListening() async {
