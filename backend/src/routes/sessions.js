@@ -8,9 +8,9 @@ const router = express.Router();
 router.post("/refresh", sessionCtrl.refreshAccessToken);
 
 // logout current session
-router.post("/logout", requireAuth(), sessionCtrl.logout);
+router.post("/logout", requireAuth, sessionCtrl.logout);
 
 // list active sessions for user
-router.get("/", requireAuth(), sessionCtrl.listSessions);
+router.get("/", requireAuth, sessionCtrl.listSessions);
 
 export default router;

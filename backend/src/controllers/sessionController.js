@@ -120,3 +120,19 @@ export const logout = async (req, res) => {
     return res.status(500).json({ error: "Server error during logout" });
   }
 };
+export const listSessions = async (req, res) => {
+  try {
+    const sessions = await Session.find({
+      user: req.user._id,
+      revoked: false,
+      expiresAt: { $gt: new Date() },
+    })
+      .select("-refreshTokenHash")
+      .sort({ createdAt: -1 });
+
+    res.json({ sessions });
+  } catch (err) {
+    console.error("listSessions error:", err);
+    res.status(500).json({ error: "Failed to list sessions" });
+  }
+};
