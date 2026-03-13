@@ -1,0 +1,10 @@
+paddlepaddle==2.6.2
+paddleocr==2.7.3
+fastapi 
+uvicorn
+pillow 
+numpy==1.23.5
+opencv-python
+python-multipart
+setuptools 
+wheel
