@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'signup_screen.dart';
-import 'chatbot_screen.dart';
 import 'home_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'role_selection_screen.dart';
 
 // single secure storage instance
 final FlutterSecureStorage secureStorage = const FlutterSecureStorage();
@@ -20,15 +19,110 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool loading = false;
-  bool hidePassword = true; // <-- added for show/hide
+  bool hidePassword = true;
+
+  Future<void> _quickLoginAsRole(String role) async {
+    if (role == 'lawyer') {
+      try {
+        final response = await http.post(
+          Uri.parse('http://192.168.0.105:3000/api/lawyers/dev-login'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final data = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+
+        if (response.statusCode == 200) {
+          final accessToken = data['access_token'];
+          final user = data['user'];
+
+          if (accessToken != null) {
+            await secureStorage.write(key: 'accessToken', value: accessToken.toString());
+          }
+
+          await secureStorage.write(
+            key: 'role',
+            value: (user?['role'] ?? 'lawyer').toString(),
+          );
+        } else {
+          final error = (data is Map && data['error'] != null)
+              ? data['error'].toString()
+              : 'Unable to start lawyer test mode';
+          if (!mounted) return;
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(error)));
+          return;
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Server error starting lawyer test mode')),
+        );
+        return;
+      }
+    } else {
+      try {
+        final response = await http.post(
+          Uri.parse('http://192.168.0.105:3000/api/users/dev-guest-login'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final data = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+
+        if (response.statusCode == 200) {
+          final accessToken = data['access_token'];
+          final user = data['user'];
+
+          if (accessToken != null) {
+            await secureStorage.write(key: 'accessToken', value: accessToken.toString());
+          }
+
+          await secureStorage.write(
+            key: 'role',
+            value: (user?['role'] ?? 'citizen').toString(),
+          );
+        } else {
+          final error = (data is Map && data['error'] != null)
+              ? data['error'].toString()
+              : 'Unable to start guest mode';
+          if (!mounted) return;
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(error)));
+          return;
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Server error starting guest mode')),
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LegalMateHome()),
+    );
+  }
 
   Future<void> signin() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email and password are required")),
+      );
+      return;
+    }
+
     setState(() => loading = true);
 
-    final url = Uri.parse('http://192.168.100.147:3000/api/users/signin');
+    final url = Uri.parse('http://192.168.0.105:3000/api/users/signin');
     final body = jsonEncode({
-      "email": emailController.text.trim(),
-      "password": passwordController.text,
+      "email": email,
+      "password": password,
     });
 
     try {
@@ -41,20 +135,22 @@ class _SignInScreenState extends State<SignInScreen> {
       final data = res.body.isNotEmpty ? jsonDecode(res.body) : {};
 
       if (res.statusCode == 200) {
-        // Expecting server to return { accessToken, user: {...} }
-        final accessToken = data['accessToken'] as String?;
-        if (accessToken != null && accessToken.isNotEmpty) {
-          // store access token securely for later (logout, authenticated calls)
+        final accessToken = data['access_token'] ?? data['accessToken'];
+        final user = data['user'];
+
+        if (accessToken != null) {
           await secureStorage.write(key: 'accessToken', value: accessToken);
         }
 
-        // Navigate to ChatBotPage (preserve your UI/navigation behavior)
-       if (mounted) {
-       Navigator.pushReplacement(
-       context,
-      MaterialPageRoute(builder: (_) => const LegalMateHome()), // Changed from ChatBotPage
-  );
-}
+        final role = user?['role'] ?? 'citizen';
+        await secureStorage.write(key: 'role', value: role);
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LegalMateHome()),
+        );
       } else {
         final errMsg = (data is Map && (data['error'] != null))
             ? data['error'].toString()
@@ -66,8 +162,17 @@ class _SignInScreenState extends State<SignInScreen> {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text("Server error")));
     } finally {
-      setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -144,7 +249,8 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: TextButton(
                   onPressed: () {
                     Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const SignUpScreen()));
+                      MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+                    );
                   },
                   child: const Text(
                     "Don't have an account? Sign Up",
@@ -155,13 +261,21 @@ class _SignInScreenState extends State<SignInScreen> {
               Center(
                 child: TextButton(
                   onPressed: () {
-                    Navigator.pushReplacement(
-                    context,
-                  MaterialPageRoute(builder: (_) => const LegalMateHome()), // Changed from ChatBotPage
-                   );
-              },
+                    _quickLoginAsRole("citizen");
+                  },
                   child: const Text(
-                    "Continue as Guest",
+                    "Log in as Guest",
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                ),
+              ),
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    _quickLoginAsRole("lawyer");
+                  },
+                  child: const Text(
+                    "Log in as Lawyer",
                     style: TextStyle(color: Colors.black54),
                   ),
                 ),
