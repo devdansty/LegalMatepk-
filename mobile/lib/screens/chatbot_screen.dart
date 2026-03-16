@@ -36,7 +36,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
   String _voiceMode = "auto"; // auto | ur | en
 
-  final String nodeApiUrl = 'http://192.168.0.108:3000/api/chatbot';
+  final String nodeApiUrl = 'http://192.168.0.105:3000/api/chatbot';
 
   // ================= INIT =================
   @override
