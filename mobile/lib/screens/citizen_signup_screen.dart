@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'signin_screen.dart';
 
-class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+class CitizenSignUpScreen extends StatefulWidget {
+  const CitizenSignUpScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  State<CitizenSignUpScreen> createState() => _CitizenSignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _CitizenSignUpScreenState extends State<CitizenSignUpScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
@@ -29,35 +29,45 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     setState(() => loading = true);
 
-    final url = Uri.parse('http://192.168.100.147:3000/api/users/signup');
+    // final url = Uri.parse('http://192.168.100.147:3000/api/users/signup');
+    final url = Uri.parse('http://192.168.0.105:3000/api/users/signup');
+
     final body = jsonEncode({
-      "display_name": nameController.text,
-      "email": emailController.text,
-      "phone": phoneController.text, // include phone
+      "display_name": nameController.text.trim(),
+      "email": emailController.text.trim(),
+      "phone": phoneController.text.trim(),
       "password": passwordController.text,
-      "preferred_language": "ur"
+      "preferred_language": "ur",
+      "role": "citizen" // ✅ Role-based signup
     });
 
     try {
-      final res = await http.post(url,
-          headers: {"Content-Type": "application/json"}, body: body);
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: body,
+      );
 
-      final data = jsonDecode(res.body);
+      final data = res.body.isNotEmpty ? jsonDecode(res.body) : {};
 
       if (res.statusCode == 201) {
         showDialog(
           context: context,
-          barrierDismissible: false, 
+          barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             title: const Text("Signup Successful ✅"),
-            content: const Text("Your account has been created."),
+            content: const Text(
+              "Account created. Please verify your email or phone.",
+            ),
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(ctx).pop(); 
+                  Navigator.of(ctx).pop();
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const SignInScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const SignInScreen(),
+                    ),
                   );
                 },
                 child: const Text("Login"),
@@ -66,8 +76,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         );
       } else {
+        final errMsg = data['error'] ?? 'Signup failed';
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(data['error'] ?? 'Signup failed')));
+            .showSnackBar(SnackBar(content: Text(errMsg)));
       }
     } catch (e) {
       ScaffoldMessenger.of(context)
@@ -76,7 +87,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => loading = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +99,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                "Create Account ",
+                "Create Citizen Account",
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
@@ -102,20 +112,57 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 style: TextStyle(color: Colors.black54),
               ),
               const SizedBox(height: 40),
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: "Full Name")),
+
+              // Name
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: "Full Name"),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: emailController, decoration: const InputDecoration(labelText: "Email")),
+
+              // Email
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(labelText: "Email"),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: phoneController, decoration: const InputDecoration(labelText: "Phone Number")),
+
+              // Phone
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: "Phone Number"),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: passwordController, obscureText: true, decoration: const InputDecoration(labelText: "Password")),
+
+              // Password
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: "Password"),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: confirmController, obscureText: true, decoration: const InputDecoration(labelText: "Confirm Password")),
+
+              // Confirm Password
+              TextField(
+                controller: confirmController,
+                obscureText: true,
+                decoration:
+                const InputDecoration(labelText: "Confirm Password"),
+              ),
               const SizedBox(height: 30),
+
+              // Signup button
               ElevatedButton(
                 onPressed: loading ? null : signup,
                 child: loading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
                     : const Text("Sign Up"),
               ),
             ],
