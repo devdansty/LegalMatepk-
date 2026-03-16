@@ -6,6 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'chatbot_screen.dart'; 
 import 'ocr_screen.dart';     
 import 'signin_screen.dart';
+import 'lawyer_dashboard.dart';
+import 'lawyer_connect_screen.dart';
 
 class LegalMateHome extends StatefulWidget {
   const LegalMateHome({super.key});
@@ -47,6 +49,31 @@ class _LegalMateHomeState extends State<LegalMateHome> {
     );
   }
 
+  Future<void> _openLawyerConnect() async {
+    final role = await secureStorage.read(key: 'role');
+    if (!mounted) return;
+
+    if (role == 'lawyer') {
+      _navigateTo(const LawyerDashboard());
+      return;
+    }
+
+    _navigateTo(const LawyerConnectScreen());
+  }
+
+  Future<void> _completeLocalLogout() async {
+    await secureStorage.delete(key: 'accessToken');
+    await secureStorage.delete(key: 'role');
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SignInScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,26 +95,24 @@ class _LegalMateHomeState extends State<LegalMateHome> {
                   setState(() => _isLoading = true);
                   try {
                     final accessToken = await secureStorage.read(key: 'accessToken');
+
+                    if (accessToken == null || accessToken.isEmpty) {
+                      await _completeLocalLogout();
+                      break;
+                    }
+
                     final headers = <String, String>{
                       'Content-Type': 'application/json',
-                      if (accessToken != null && accessToken.isNotEmpty)
-                        'Authorization': 'Bearer $accessToken',
+                      'Authorization': 'Bearer $accessToken',
                     };
 
                     final response = await http.post(
-                      Uri.parse('http://192.168.100.147:3000/api/sessions/logout'),
+                      Uri.parse('http://192.168.0.105:3000/api/sessions/logout'),
                       headers: headers,
                     );
 
-                    if (response.statusCode == 200) {
-                      await secureStorage.delete(key: 'accessToken');
-                      if (mounted) {
-                        setState(() => _isLoading = false);
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const SignInScreen()),
-                              (route) => false,
-                        );
-                      }
+                    if (response.statusCode == 200 || response.statusCode == 401) {
+                      await _completeLocalLogout();
                     } else {
                       setState(() => _isLoading = false);
                       _showError('Logout failed: ${response.statusCode}');
@@ -178,7 +203,7 @@ class _LegalMateHomeState extends State<LegalMateHome> {
                       bgColor: darkGreen,
                       iconColor: creamCard,
                       textColor: Colors.white,
-                      onTap: () => _navigateTo(const PlaceholderScreen(title: "Lawyer Connect")),
+                      onTap: _openLawyerConnect,
                     ),
                   ],
                 ),
