@@ -1,10 +1,11 @@
-// dart
+﻿// dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_tts/flutter_tts.dart';
 import '../services/STT.dart';
+import '../config/api_config.dart';
 import 'signin_screen.dart';
 
 class ChatBotPage extends StatefulWidget {
@@ -15,7 +16,7 @@ class ChatBotPage extends StatefulWidget {
 }
 
 class _ChatBotPageState extends State<ChatBotPage> {
-  bool useDummyReplies = true; // 🔁 switch to false when backend is ready
+  bool useDummyReplies = true; // ðŸ” switch to false when backend is ready
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, String>> _messages = [];
   final ScrollController _scrollController = ScrollController();
@@ -35,8 +36,6 @@ class _ChatBotPageState extends State<ChatBotPage> {
   String _sessionPrefix = '';
 
   String _voiceMode = "auto"; // auto | ur | en
-
-  final String nodeApiUrl = 'http://192.168.0.105:3000/api/chatbot';
 
   // ================= INIT =================
   @override
@@ -90,11 +89,11 @@ class _ChatBotPageState extends State<ChatBotPage> {
       await Future.delayed(const Duration(seconds: 1));
 
       final List<String> dummyReplies = [
-        "السلام علیکم! میں آپ کی کیسے مدد کر سکتا ہوں؟",
-        "یہ ایک ٹیسٹ جواب ہے تاکہ ٹیکسٹ ٹو اسپیچ کو چیک کیا جا سکے۔",
+        "Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÛŒÚ©Ù…! Ù…ÛŒÚº Ø¢Ù¾ Ú©ÛŒ Ú©ÛŒØ³Û’ Ù…Ø¯Ø¯ Ú©Ø± Ø³Ú©ØªØ§ ÛÙˆÚºØŸ",
+        "ÛŒÛ Ø§ÛŒÚ© Ù¹ÛŒØ³Ù¹ Ø¬ÙˆØ§Ø¨ ÛÛ’ ØªØ§Ú©Û Ù¹ÛŒÚ©Ø³Ù¹ Ù¹Ùˆ Ø§Ø³Ù¾ÛŒÚ† Ú©Ùˆ Ú†ÛŒÚ© Ú©ÛŒØ§ Ø¬Ø§ Ø³Ú©Û’Û”",
         "Yeh sirf testing ke liye dummy response hai.",
         "Hello! This is a dummy reply for testing purposes.",
-        "درخواست گزار کو مطلع کیا جاتا ہے کہ اپیل کی مدت تیس دن ہے۔"
+        "Ø¯Ø±Ø®ÙˆØ§Ø³Øª Ú¯Ø²Ø§Ø± Ú©Ùˆ Ù…Ø·Ù„Ø¹ Ú©ÛŒØ§ Ø¬Ø§ØªØ§ ÛÛ’ Ú©Û Ø§Ù¾ÛŒÙ„ Ú©ÛŒ Ù…Ø¯Øª ØªÛŒØ³ Ø¯Ù† ÛÛ’Û”"
       ];
 
       dummyReplies.shuffle();
@@ -111,7 +110,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
     // ================= REAL API MODE =================
     try {
       final response = await http.post(
-        Uri.parse(nodeApiUrl),
+        ApiConfig.uri('/api/chatbot'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"message": message, "session_id": "session-1"}),
       ).timeout(const Duration(seconds: 60));
@@ -366,7 +365,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
         spacing: 8,
         children: [
           _langChip("Auto", "auto"),
-          _langChip("اردو", "ur"),
+          _langChip("Ø§Ø±Ø¯Ùˆ", "ur"),
           _langChip("English", "en"),
         ],
       ),
@@ -462,10 +461,10 @@ class _ChatBotPageState extends State<ChatBotPage> {
   }
 
   Widget _buildListeningLabel() {
-    String label = "🎤 Listening...";
-    if (_voiceMode == "auto") label = "🎤 Auto detecting...";
-    if (_voiceMode == "ur") label = "🎤 Listening in Urdu...";
-    if (_voiceMode == "en") label = "🎤 Listening in English...";
+    String label = "ðŸŽ¤ Listening...";
+    if (_voiceMode == "auto") label = "ðŸŽ¤ Auto detecting...";
+    if (_voiceMode == "ur") label = "ðŸŽ¤ Listening in Urdu...";
+    if (_voiceMode == "en") label = "ðŸŽ¤ Listening in English...";
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
