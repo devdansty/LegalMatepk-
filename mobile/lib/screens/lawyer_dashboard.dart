@@ -1,8 +1,9 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 class LawyerDashboard extends StatefulWidget {
   const LawyerDashboard({super.key});
@@ -12,7 +13,6 @@ class LawyerDashboard extends StatefulWidget {
 }
 
 class _LawyerDashboardState extends State<LawyerDashboard> {
-  static const String _baseUrl = 'http://192.168.0.105:3000';
   static const List<String> _specializationOptions = [
     'family',
     'criminal',
@@ -68,14 +68,14 @@ class _LawyerDashboardState extends State<LawyerDashboard> {
     try {
       final responses = await Future.wait([
         http.get(
-          Uri.parse('$_baseUrl/api/lawyers/me/profile'),
+          ApiConfig.uri('/api/lawyers/me/profile'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
           },
         ),
         http.get(
-          Uri.parse('$_baseUrl/api/lawyers/requests/incoming'),
+          ApiConfig.uri('/api/lawyers/requests/incoming'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
@@ -162,7 +162,7 @@ class _LawyerDashboardState extends State<LawyerDashboard> {
 
     try {
       final response = await http.put(
-        Uri.parse('$_baseUrl/api/lawyers/me/profile'),
+        ApiConfig.uri('/api/lawyers/me/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -213,7 +213,7 @@ class _LawyerDashboardState extends State<LawyerDashboard> {
 
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/lawyers/requests/incoming'),
+        ApiConfig.uri('/api/lawyers/requests/incoming'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -250,7 +250,7 @@ class _LawyerDashboardState extends State<LawyerDashboard> {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/lawyers/requests/respond'),
+        ApiConfig.uri('/api/lawyers/requests/respond'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
