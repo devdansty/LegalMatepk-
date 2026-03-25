@@ -1,7 +1,8 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'signin_screen.dart';
+import '../config/api_config.dart';
 
 class CitizenSignUpScreen extends StatefulWidget {
   const CitizenSignUpScreen({super.key});
@@ -29,8 +30,7 @@ class _CitizenSignUpScreenState extends State<CitizenSignUpScreen> {
 
     setState(() => loading = true);
 
-    // final url = Uri.parse('http://192.168.100.147:3000/api/users/signup');
-    final url = Uri.parse('http://192.168.0.105:3000/api/users/signup');
+    final url = ApiConfig.uri('/api/users/signup');
 
     final body = jsonEncode({
       "display_name": nameController.text.trim(),
@@ -38,7 +38,7 @@ class _CitizenSignUpScreenState extends State<CitizenSignUpScreen> {
       "phone": phoneController.text.trim(),
       "password": passwordController.text,
       "preferred_language": "ur",
-      "role": "citizen" // ✅ Role-based signup
+      "role": "citizen" // âœ… Role-based signup
     });
 
     try {
@@ -55,7 +55,7 @@ class _CitizenSignUpScreenState extends State<CitizenSignUpScreen> {
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
-            title: const Text("Signup Successful ✅"),
+            title: const Text("Signup Successful âœ…"),
             content: const Text(
               "Account created. Please verify your email or phone.",
             ),
