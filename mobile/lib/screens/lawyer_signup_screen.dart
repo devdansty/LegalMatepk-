@@ -1,8 +1,9 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'signin_screen.dart';
+import '../config/api_config.dart';
 
 class LawyerSignUpScreen extends StatefulWidget {
   const LawyerSignUpScreen({super.key});
@@ -105,8 +106,7 @@ class _LawyerSignUpScreenState extends State<LawyerSignUpScreen> {
     setState(() => loading = true);
 
     try {
-      // final url = Uri.parse('http://192.168.100.147:3000/api/lawyers/signup');
-      final url = Uri.parse('http://192.168.0.105:3000/api/lawyers/signup');
+      final url = ApiConfig.uri('/api/lawyers/signup');
       var request = http.MultipartRequest("POST", url);
 
       // Add text fields
@@ -142,7 +142,7 @@ class _LawyerSignUpScreenState extends State<LawyerSignUpScreen> {
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
-            title: const Text("Application Submitted 👨‍⚖️"),
+            title: const Text("Application Submitted ðŸ‘¨â€âš–ï¸"),
             content: const Text(
               "Your lawyer profile has been submitted for review. You will be notified once it is approved by the admin. Please check your email for updates.",
             ),
