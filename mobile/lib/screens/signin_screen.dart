@@ -1,9 +1,10 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'role_selection_screen.dart';
+import '../config/api_config.dart';
 
 // single secure storage instance
 final FlutterSecureStorage secureStorage = const FlutterSecureStorage();
@@ -25,7 +26,7 @@ class _SignInScreenState extends State<SignInScreen> {
     if (role == 'lawyer') {
       try {
         final response = await http.post(
-          Uri.parse('http://192.168.0.105:3000/api/lawyers/dev-login'),
+          ApiConfig.uri('/api/lawyers/dev-login'),
           headers: {'Content-Type': 'application/json'},
         );
 
@@ -62,7 +63,7 @@ class _SignInScreenState extends State<SignInScreen> {
     } else {
       try {
         final response = await http.post(
-          Uri.parse('http://192.168.0.105:3000/api/users/dev-guest-login'),
+          ApiConfig.uri('/api/users/dev-guest-login'),
           headers: {'Content-Type': 'application/json'},
         );
 
@@ -119,7 +120,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     setState(() => loading = true);
 
-    final url = Uri.parse('http://192.168.0.105:3000/api/users/signin');
+    final url = ApiConfig.uri('/api/users/signin');
     final body = jsonEncode({
       "email": email,
       "password": password,
@@ -287,3 +288,4 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 }
+
