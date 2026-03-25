@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +8,8 @@ import 'ocr_screen.dart';
 import 'signin_screen.dart';
 import 'lawyer_dashboard.dart';
 import 'lawyer_connect_screen.dart';
+import 'legaltemplate_screen.dart';
+import '../config/api_config.dart';
 
 class LegalMateHome extends StatefulWidget {
   const LegalMateHome({super.key});
@@ -107,7 +109,7 @@ class _LegalMateHomeState extends State<LegalMateHome> {
                     };
 
                     final response = await http.post(
-                      Uri.parse('http://192.168.0.105:3000/api/sessions/logout'),
+                      ApiConfig.uri('/api/sessions/logout'),
                       headers: headers,
                     );
 
@@ -194,7 +196,7 @@ class _LegalMateHomeState extends State<LegalMateHome> {
                       bgColor: creamCard,
                       iconColor: darkGreen,
                       textColor: Colors.black87,
-                      onTap: () => _navigateTo(const PlaceholderScreen(title: "Docs Generator")),
+                      onTap: () => _navigateTo(const DocumentAutomationScreen()),
                     ),
                     _buildMenuCard(
                       title: "Lawyer Connect",
