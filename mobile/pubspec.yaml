@@ -61,6 +61,8 @@ dependencies:
   flutter_secure_storage: ^8.0.0
   image_picker: ^1.2.1
 
+  file_picker: ^8.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -87,8 +89,6 @@ flutter:
 
   assets:
   - assets/
-
-
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
