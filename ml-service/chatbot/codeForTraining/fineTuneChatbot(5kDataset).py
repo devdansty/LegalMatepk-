@@ -51,12 +51,12 @@ from datasets import load_dataset
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 
-# ---------- CONFIG (edit if you want) ----------
+# ---------- CONFIG ----------
 DEFAULT_CONFIG = {
-    "model_name_or_path": "Qwen/Qwen2.5-1.5B-Instruct",  # adjust if your model path differs
+    "model_name_or_path": "Qwen/Qwen2.5-1.5B-Instruct",  
     "data_path": r"C:\Haroon-Data\code\fyp\application\LegalMate.pk\docs\dataForTaining-chatBot\updatedWork\finalFile\final_dataset.jsonl",
     "output_dir": r"C:\Haroon-Data\code\fyp\application\LegalMate.pk\ml-service\chatbot\ChatBot-qwen2(15kDataset)\qwen2_qlora_run",
-    "seed": 42,
+    "seed": 42, # used for validation
     "total_train_samples": 5000,  # informational
     "validation_split_ratio": 0.10,
     # QLoRA & training hyperparameters
