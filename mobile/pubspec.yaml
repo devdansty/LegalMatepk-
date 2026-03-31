@@ -50,6 +50,13 @@ dependencies:
   # 🔹 HTTP requests
   http: ^1.2.2
 
+  # 🔹 File management
+  path_provider: ^2.1.3
+  open_file: ^3.1.0
+
+  # 🔹 Notifications
+  flutter_local_notifications: ^17.1.2
+
   # 🔹 Firebase (for later integration)
   firebase_core: ^4.2.0
   firebase_auth: ^6.1.1
