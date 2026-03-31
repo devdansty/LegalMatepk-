@@ -269,56 +269,9 @@ class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
                       ],
                     ),
                   ),
-                  // Fields Count
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF004B23).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${template.fields.length} fields',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF004B23),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
                 ],
               ),
-              // Tags
-              if (template.tags.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: template.tags
-                        .take(3)
-                        .map(
-                          (tag) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              tag,
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-            ],
+            ],            
           ),
         ),
       ),
