@@ -10,7 +10,7 @@ class STTService {
   }
 
   Future<void> startListening({
-    required Function(String text) onResult,
+    required Function(String text, bool isFinal) onResult,
     String languageCode = "en_US",
   }) async {
     if (!_isInitialized) {
@@ -20,7 +20,8 @@ class STTService {
     _speech.listen(
       localeId: languageCode,
       onResult: (result) {
-        onResult(result.recognizedWords);
+        // Only send final results to avoid duplicates from partial results
+        onResult(result.recognizedWords, result.finalResult);
       },
     );
   }
