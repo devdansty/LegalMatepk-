@@ -1,9 +1,11 @@
 ﻿// dart
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/STT.dart';
 import '../config/api_config.dart';
 import 'signin_screen.dart';
@@ -30,12 +32,20 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
   Timer? _silenceTimer;
   Timer? _errorTimer;
-  final Duration _silenceDuration = const Duration(seconds: 10);
+  bool _isRestarting = false;
+  final Duration _silenceDuration = const Duration(seconds: 4); // 4 seconds of silence to stop
 
   String _lastRecognizedText = '';
   String _sessionPrefix = '';
+  String _currentLanguage = "en_US"; // Store current language for restart
 
   String _voiceMode = "auto"; // auto | ur | en
+
+  // OCR Image attachment
+  File? _attachedImage;
+  final ImagePicker _imagePicker = ImagePicker();
+  bool _isExtractingOcr = false;
+  String? _extractedOcrText;
 
   // ================= INIT =================
   @override
@@ -45,10 +55,15 @@ class _ChatBotPageState extends State<ChatBotPage> {
   }
 
   Future<void> _initTts() async {
-    await _flutterTts.setSpeechRate(0.45);
-    await _flutterTts.setPitch(1.0);
-    await _flutterTts.setVolume(1.0);
-    await _flutterTts.awaitSpeakCompletion(true);
+    try {
+      await _flutterTts.setLanguage("en-US");
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setPitch(1.0);
+      await _flutterTts.setVolume(1.0);
+      debugPrint("TTS Initialized successfully");
+    } catch (e) {
+      debugPrint("TTS Init Error: $e");
+    }
   }
 
   // ================= ERROR =================
@@ -75,6 +90,26 @@ class _ChatBotPageState extends State<ChatBotPage> {
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
+    // ================= OCR EXTRACTION (if image attached) =================
+    String finalMessage = message;
+    if (_attachedImage != null && _extractedOcrText == null) {
+      // Extract text from image first
+      await _extractTextFromImage(_attachedImage!);
+      
+      if (_extractedOcrText != null) {
+        // Combine OCR text with user message
+        finalMessage = "Document content:\n$_extractedOcrText\n\nUser question: $message";
+        _clearAttachment();
+      } else {
+        // Extraction failed - error already shown
+        return;
+      }
+    } else if (_attachedImage != null && _extractedOcrText != null) {
+      // Use previously extracted text
+      finalMessage = "Document content:\n$_extractedOcrText\n\nUser question: $message";
+      _clearAttachment();
+    }
+
     setState(() {
       _messages.add({"role": "user", "text": message});
       _isLoading = true;
@@ -88,16 +123,48 @@ class _ChatBotPageState extends State<ChatBotPage> {
     if (useDummyReplies) {
       await Future.delayed(const Duration(seconds: 1));
 
-      final List<String> dummyReplies = [
-        "Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÛŒÚ©Ù…! Ù…ÛŒÚº Ø¢Ù¾ Ú©ÛŒ Ú©ÛŒØ³Û’ Ù…Ø¯Ø¯ Ú©Ø± Ø³Ú©ØªØ§ ÛÙˆÚºØŸ",
-        "ÛŒÛ Ø§ÛŒÚ© Ù¹ÛŒØ³Ù¹ Ø¬ÙˆØ§Ø¨ ÛÛ’ ØªØ§Ú©Û Ù¹ÛŒÚ©Ø³Ù¹ Ù¹Ùˆ Ø§Ø³Ù¾ÛŒÚ† Ú©Ùˆ Ú†ÛŒÚ© Ú©ÛŒØ§ Ø¬Ø§ Ø³Ú©Û’Û”",
-        "Yeh sirf testing ke liye dummy response hai.",
-        "Hello! This is a dummy reply for testing purposes.",
-        "Ø¯Ø±Ø®ÙˆØ§Ø³Øª Ú¯Ø²Ø§Ø± Ú©Ùˆ Ù…Ø·Ù„Ø¹ Ú©ÛŒØ§ Ø¬Ø§ØªØ§ ÛÛ’ Ú©Û Ø§Ù¾ÛŒÙ„ Ú©ÛŒ Ù…Ø¯Øª ØªÛŒØ³ Ø¯Ù† ÛÛ’Û”"
+      // English demo responses
+      final List<String> englishReplies = [
+        "Hello! How can I help you with legal matters today?",
+        "That's a great question. Let me provide you with more information.",
+        "Based on Pakistani law, here's what you need to know.",
+        "I can assist you with property law, family law, or criminal law matters.",
+        "Would you like me to explain more about this legal concept?",
       ];
 
-      dummyReplies.shuffle();
-      final botReply = dummyReplies.first;
+      // Urdu demo responses
+      final List<String> urduReplies = [
+        "السلام علیکم! میں آپ کی کیسے مدد کر سکتا ہوں؟",
+        "یہ ایک اچھا سوال ہے۔ میں آپ کو مزید معلومات دیتا ہوں۔",
+        "پاکستانی قانون کے مطابق، یہ جاننا ضروری ہے۔",
+        "میں جائیداد، خاندان یا فوجداری قانون میں مدد دے سکتا ہوں۔",
+        "کیا آپ چاہتے ہیں کہ میں اس قانونی تصور کی مزید وضاحت کروں؟",
+      ];
+
+      // Determine which language response to use
+      String selectedReply = "";
+      
+      if (_voiceMode == "en") {
+        // Force English
+        englishReplies.shuffle();
+        selectedReply = englishReplies.first;
+      } else if (_voiceMode == "ur") {
+        // Force Urdu
+        urduReplies.shuffle();
+        selectedReply = urduReplies.first;
+      } else {
+        // Auto mode: detect input language
+        final inputLanguage = _detectLanguage(finalMessage);
+        if (inputLanguage == "ur") {
+          urduReplies.shuffle();
+          selectedReply = urduReplies.first;
+        } else {
+          englishReplies.shuffle();
+          selectedReply = englishReplies.first;
+        }
+      }
+
+      final botReply = selectedReply;
 
       setState(() {
         _messages.add({"role": "bot", "text": botReply});
@@ -112,7 +179,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
       final response = await http.post(
         ApiConfig.uri('/api/chatbot'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"message": message, "session_id": "session-1"}),
+        body: jsonEncode({"message": finalMessage, "session_id": "session-1"}),
       ).timeout(const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
@@ -183,6 +250,57 @@ class _ChatBotPageState extends State<ChatBotPage> {
   // }
 
   // ================= STT =================
+  void _handleSpeechResult(String text, bool isFinal) async {
+    if (!mounted || !_isListening) return;
+
+    // Reset silence timer on ANY result (partial or final) to keep timer active while speaking
+    _resetSilenceTimer();
+
+    // Only process FINAL results to avoid duplicates
+    if (!isFinal) return;
+
+    // Skip if same text (already processed)
+    if (text == _lastRecognizedText) {
+      return;
+    }
+
+    _lastRecognizedText = text;
+
+    // Combine with previous text, preserving all spoken input
+    final combined = _sessionPrefix.isEmpty
+        ? text
+        : "$_sessionPrefix $text";
+
+    setState(() {
+      _controller.text = combined;
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
+    });
+
+    // Update session prefix with new text for next utterance
+    _sessionPrefix = combined;
+
+    if (_voiceMode == "auto" && _containsUrdu(text)) {
+      _voiceMode = "ur";
+      _currentLanguage = "ur_PK";
+    }
+
+    // Speech service auto-stops after final result - restart immediately
+    if (_isListening && !_isRestarting) {
+      _isRestarting = true;
+      try {
+        await _sttService.startListening(
+          languageCode: _currentLanguage,
+          onResult: _handleSpeechResult,
+        );
+      } catch (e) {
+        debugPrint("STT Restart Error: $e");
+      }
+      _isRestarting = false;
+    }
+  }
+
   Future<void> _startListening() async {
     if (_isListening) return;
 
@@ -192,46 +310,14 @@ class _ChatBotPageState extends State<ChatBotPage> {
     if (_voiceMode == "ur") lang = "ur_PK";
     if (_voiceMode == "en") lang = "en_US";
 
+    _currentLanguage = lang; // Store for restart
     _sessionPrefix = _controller.text.trim();
     _lastRecognizedText = '';
 
     try {
       await _sttService.startListening(
         languageCode: lang,
-        onResult: (text) async {
-          if (!mounted) return;
-
-          if (text == _lastRecognizedText &&
-              _silenceTimer != null &&
-              _silenceTimer!.isActive) {
-            return;
-          }
-
-          _lastRecognizedText = text;
-
-          final combined = _sessionPrefix.isEmpty
-              ? text
-              : "$_sessionPrefix $text";
-
-          setState(() {
-            _controller.text = combined;
-            _controller.selection = TextSelection.fromPosition(
-              TextPosition(offset: _controller.text.length),
-            );
-          });
-
-          _resetSilenceTimer();
-
-          if (_voiceMode == "auto" && _containsUrdu(text)) {
-            _voiceMode = "ur";
-          }
-
-          if (_isListening) {
-            _sttService.stopListening();
-            await Future.delayed(const Duration(milliseconds: 250));
-            if (_isListening) _startListening();
-          }
-        },
+        onResult: _handleSpeechResult,
       );
 
       _resetSilenceTimer();
@@ -256,6 +342,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
     _silenceTimer?.cancel();
     _sttService.stopListening();
     _lastRecognizedText = '';
+    _isRestarting = false;
     if (mounted) setState(() => _isListening = false);
   }
 
@@ -264,14 +351,36 @@ class _ChatBotPageState extends State<ChatBotPage> {
     if (text.trim().isEmpty) return;
 
     try {
-      await _flutterTts.stop();
-
       final language = _detectLanguage(text);
-      await _setVoice(language);
+      
+      // Set language based on detection
+      if (language == "ur") {
+        await _flutterTts.setLanguage("ur-PK");
+      } else {
+        await _flutterTts.setLanguage("en-US");
+      }
 
       await _flutterTts.speak(text);
+      debugPrint("TTS Playing: Language=$language");
     } catch (e) {
       debugPrint("TTS Error: $e");
+      if (mounted) {
+        _showError("Could not play audio");
+      }
+    }
+  }
+
+  Future<void> _setLanguageForTts(String languageType) async {
+    try {
+      if (languageType == "ur") {
+        await _flutterTts.setLanguage("ur-PK");
+        debugPrint("TTS Language set to Urdu");
+      } else {
+        await _flutterTts.setLanguage("en-US");
+        debugPrint("TTS Language set to English");
+      }
+    } catch (e) {
+      debugPrint("Error setting TTS language: $e");
     }
   }
 
@@ -296,33 +405,90 @@ class _ChatBotPageState extends State<ChatBotPage> {
     return "en";
   }
 
-  Future<void> _setVoice(String languageType) async {
-    final voices = await _flutterTts.getVoices;
-    if (voices == null) return;
-
-    Map<String, dynamic>? selectedVoice;
-
-    if (languageType == "ur") {
-      selectedVoice = voices.firstWhere(
-            (voice) =>
-        (voice["locale"]?.toString().contains("ur") ?? false),
-        orElse: () => voices.first,
+  // ================= OCR IMAGE ATTACHMENT =================
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
       );
-      await _flutterTts.setLanguage("ur-PK");
-    } else {
-      selectedVoice = voices.firstWhere(
-            (voice) =>
-        (voice["locale"]?.toString().contains("en") ?? false),
-        orElse: () => voices.first,
-      );
-      await _flutterTts.setLanguage("en-US");
+
+      if (image != null) {
+        setState(() {
+          _attachedImage = File(image.path);
+          _extractedOcrText = null;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error picking image: $e");
+      _showError("Failed to pick image");
     }
+  }
 
-    if (selectedVoice != null) {
-      await _flutterTts.setVoice({
-        "name": selectedVoice["name"],
-        "locale": selectedVoice["locale"],
-      });
+  void _clearAttachment() {
+    setState(() {
+      _attachedImage = null;
+      _extractedOcrText = null;
+    });
+  }
+
+  Future<void> _extractTextFromImage(File imageFile) async {
+    setState(() => _isExtractingOcr = true);
+
+    try {
+      final uri = ApiConfig.uri('/api/ocr');
+      final request = http.MultipartRequest('POST', uri);
+
+      // Add file
+      final fileStream = http.ByteStream(imageFile.openRead());
+      final fileLength = await imageFile.length();
+      final multipartFile = http.MultipartFile(
+        'document',
+        fileStream,
+        fileLength,
+        filename: imageFile.path.split('/').last,
+      );
+      request.files.add(multipartFile);
+
+      // Send request
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          setState(() => _isExtractingOcr = false);
+          throw TimeoutException('OCR extraction took too long');
+        },
+      );
+
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final confidence = data['data']?['confidenceScore'] ?? 
+                          data['confidenceScore'] ?? 0.0;
+
+        // Check confidence threshold (70%)
+        if (confidence >= 0.70) {
+          final rawText = data['data']?['rawExtractedText'] ?? 
+                         data['rawExtractedText'] ?? '';
+          setState(() {
+            _extractedOcrText = rawText;
+            _isExtractingOcr = false;
+          });
+          debugPrint("OCR success. Confidence: ${(confidence * 100).toStringAsFixed(1)}%");
+        } else {
+          setState(() => _isExtractingOcr = false);
+          _showError("Unable to extract text. Please try another image.");
+          _clearAttachment();
+        }
+      } else {
+        setState(() => _isExtractingOcr = false);
+        _showError("OCR extraction failed. Please try again.");
+        debugPrint("OCR Error: ${response.statusCode}");
+      }
+    } catch (e) {
+      setState(() => _isExtractingOcr = false);
+      _showError("Error extracting text: ${e.toString()}");
+      debugPrint("OCR Exception: $e");
     }
   }
 
@@ -365,7 +531,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
         spacing: 8,
         children: [
           _langChip("Auto", "auto"),
-          _langChip("Ø§Ø±Ø¯Ùˆ", "ur"),
+          _langChip("اردو", "ur"),
           _langChip("English", "en"),
         ],
       ),
@@ -394,34 +560,55 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
         return Align(
           alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isUser ? bubbleGreen : Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Stack(
-              children: [
-                Text(text,
-                    style: TextStyle(
-                        color: isUser ? Colors.white : Colors.black)),
-                if (!isUser)
-                  Positioned(
-                    right: -5,
-                    top: -5,
-                    child: GestureDetector(
-                      onTap: () => _speak(text),
-                      child: const CircleAvatar(
-                        radius: 12,
-                        backgroundColor: bubbleGreen,
-                        child: Icon(Icons.play_arrow,
-                            size: 14, color: Colors.white),
+          child: Row(
+            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.68,
+                ),
+                decoration: BoxDecoration(
+                  color: isUser ? bubbleGreen : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: isUser ? Colors.white : Colors.black,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              if (!isUser)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: SizedBox(
+                    height: 32,
+                    width: 32,
+                    child: OutlinedButton(
+                      onPressed: () => _speak(text),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        side: const BorderSide(
+                          color: bubbleGreen,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow,
+                        size: 18,
+                        color: bubbleGreen,
                       ),
                     ),
-                  )
-              ],
-            ),
+                  ),
+                ),
+            ],
           ),
         );
       },
@@ -431,32 +618,153 @@ class _ChatBotPageState extends State<ChatBotPage> {
   Widget _buildInputBar() {
     const bubbleGreen = Color(0xFF006400);
 
-    return Column(
-      children: [
-        if (_isListening) _buildListeningLabel(),
-        Row(
-          children: [
-            IconButton(
-              icon: Icon(
-                  _isListening ? Icons.mic : Icons.mic_none,
-                  color: bubbleGreen),
-              onPressed:
-              _isListening ? _stopListening : _startListening,
-            ),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                decoration:
-                const InputDecoration(hintText: "Ask LegalMate..."),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: Column(
+        children: [
+          if (_isListening) _buildListeningLabel(),
+          // Image attachment preview
+          if (_attachedImage != null) _buildImagePreview(),
+          // OCR extraction loading indicator
+          if (_isExtractingOcr)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: const [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(bubbleGreen),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    "Extracting text from image...",
+                    style: TextStyle(fontSize: 12, color: bubbleGreen),
+                  ),
+                ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.send, color: bubbleGreen),
-              onPressed: () => _sendMessage(_controller.text),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Mic Button Column
+              Column(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      _isListening ? Icons.mic : Icons.mic_none,
+                      color: bubbleGreen,
+                      size: _isListening ? 32 : 24,
+                    ),
+                    onPressed: _isListening ? _stopListening : _startListening,
+                  ),
+                  if (_isListening)
+                    const Text(
+                      "Stop",
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: bubbleGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
+              ),
+              // Attachment Button
+              IconButton(
+                icon: const Icon(Icons.attach_file, color: bubbleGreen),
+                onPressed: _isListening || _isExtractingOcr ? null : _pickImage,
+                tooltip: "Attach image",
+              ),
+              // Text Field
+              Expanded(
+                child: Opacity(
+                  opacity: _isListening ? 0.5 : 1.0,
+                  child: TextField(
+                    controller: _controller,
+                    enabled: !_isListening && !_isExtractingOcr,
+                    maxLines: 4,
+                    minLines: 2,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: "Ask LegalMate...",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ),
+              ),
+              // Send Button
+              IconButton(
+                icon: const Icon(Icons.send, color: bubbleGreen),
+                onPressed: (_isListening || _isExtractingOcr)
+                    ? null
+                    : () => _sendMessage(_controller.text),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePreview() {
+    const bubbleGreen = Color(0xFF006400);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          // Image thumbnail
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.file(
+              _attachedImage!,
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
             ),
-          ],
-        ),
-      ],
+          ),
+          const SizedBox(width: 12),
+          // File info and clear button
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _attachedImage!.path.split('/').last,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+                if (_extractedOcrText != null)
+                  const Text(
+                    "Text extracted ✓",
+                    style: TextStyle(fontSize: 11, color: Colors.green),
+                  ),
+              ],
+            ),
+          ),
+          // Clear button
+          IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            onPressed: _clearAttachment,
+            tooltip: "Remove image",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          ),
+        ],
+      ),
     );
   }
 
