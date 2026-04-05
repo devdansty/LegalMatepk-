@@ -6,10 +6,13 @@ import lawyerRoutes from "./modules/lawyers/lawyer.routes.js";
 import chatbotModule from "./modules/chatbot/index.js";
 import userRoutes from "./modules/users/user.routes.js";
 import sessionRoutes from "./modules/sessions/session.routes.js";
+import ocrModule from "./modules/ocr/index.js";
+import templateRoutes from "./modules/template-generator/template.routes.js";
 
 const app = express();
 
 app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ limit: "5mb" }));
 app.use(cookieParser());
 app.use(cors({
   origin: process.env.FRONTEND_ORIGIN || true,
@@ -19,9 +22,11 @@ app.use(cors({
 app.use("/api/chatbot", chatbotModule);
 app.use("/api/users", userRoutes);
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/templates", templateRoutes);
+app.use("/api/ocr", ocrModule); // Uses multer for file uploads
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
-app.use("/api/lawyers", lawyerRoutes);
+app.use("/api/lawyers", lawyerRoutes); // Uses express-fileupload (configured in routes)
 
 export default app;
