@@ -7,26 +7,36 @@ import validator from "validator";
 import User from "./user.model.js";
 import Session from "../sessions/session.model.js";
 // ---------- JWT Helper ----------
-const signJwt = (userId) => {
-  return jwt.sign({ sub: userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXP || '15m' });
+const signJwt = (userId, sessionId) => {
+  const payload = { sub: userId };
+  if (sessionId) payload.sid = sessionId;
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXP || '15m' });
 };
 
 // ---------- Session Helper ----------
-const createSession = async (userId, req, res) => {
-  const accessToken = signJwt(userId);
-
+const createSession = async (userId, req, res, isGuest = false) => {
   const refreshToken = crypto.randomBytes(64).toString('hex');
   const refreshTokenHash = await argon2.hash(refreshToken);
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
-  const { role } = req.body;
 
-  await Session.create({
+  const sessionData = {
     user: userId,
     refreshTokenHash,
     ip: req.ip,
     userAgent: req.get('User-Agent'),
     expiresAt,
-  });
+  };
+
+  // Set guest call limit for guest users (5 API calls including chats)
+  if (isGuest) {
+    sessionData.guest_api_calls = 0;
+    sessionData.guest_call_limit = 5;
+  }
+
+  const session = await Session.create(sessionData);
+
+  // Create JWT with session ID
+  const accessToken = signJwt(userId, session._id.toString());
 
   // Send refresh token as HTTP-only cookie
   res.cookie('refresh_token', refreshToken, {
@@ -37,16 +47,24 @@ const createSession = async (userId, req, res) => {
     expires: expiresAt,
   });
 
-  return accessToken;
+  return { accessToken, sessionId: session._id.toString() };
 };
 
 // ---------- Signup ----------
 const signup = async (req, res) => {
   try {
     const errs = validationResult(req);
-    if (!errs.isEmpty()) return res.status(400).json({ errors: errs.array() });
+    if (!errs.isEmpty()) {
+      const errorMsg = errs.array()[0]?.msg || 'Validation error';
+      return res.status(400).json({ error: errorMsg });
+    }
 
-   const { email, password, display_name, username, preferred_language, phone } = req.body;
+   const { email, password, display_name, username, preferred_language, phone, role } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
     if (!validator.isEmail(email)) return res.status(400).json({ error: 'Invalid email' });
 
     const exists = await User.findOne({ email: email.toLowerCase() });
@@ -67,16 +85,23 @@ const signup = async (req, res) => {
       email_verify_token: verifyToken,
       email_verify_expires_at: verifyExpires,
       consent: { tos_accepted: true, tos_accepted_at: new Date() },
+      is_guest: false,
       role: role === "lawyer" ? "lawyer" : "citizen"
     });
 
     await user.save();
 
-    const token = signJwt(user._id);
-    res.status(201).json({ user: { id: user._id, email: user.email }, access_token: token });
+    // Create session for new user
+    const { accessToken, sessionId } = await createSession(user._id, req, res);
+
+    res.status(201).json({ 
+      user: { id: user._id, email: user.email, is_guest: user.is_guest }, 
+      access_token: accessToken,
+      session_id: sessionId
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('[SIGNUP_ERROR]', err.message);
+    res.status(500).json({ error: err.message || 'Server error' });
   }
 };
 
@@ -96,16 +121,65 @@ const signin = async (req, res) => {
     await user.save();
 
     // Create session & set refresh token cookie
-    const accessToken = await createSession(user._id, req, res);
+    const { accessToken, sessionId } = await createSession(user._id, req, res);
 
     res.json({
-      user: { id: user._id, email: user.email, role: user.role, display_name: user.profile?.display_name || null },
-      access_token: accessToken
+      user: { id: user._id, email: user.email, role: user.role, display_name: user.profile?.display_name || null, is_guest: user.is_guest },
+      access_token: accessToken,
+      session_id: sessionId
     });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
+  }
+};
+
+const devGuestLogin = async (req, res) => {
+  try {
+    // Generate unique guest user for each session
+    const uniqueId = crypto.randomBytes(8).toString('hex');
+    const guestEmail = `guest_${uniqueId}@legalmate.local`;
+
+    const hash = await argon2.hash(
+      crypto.randomBytes(24).toString('hex'),
+      { type: argon2.argon2id }
+    );
+
+    const user = await User.create({
+      email: guestEmail.toLowerCase(),
+      password_hash: hash,
+      phone: null,
+      profile: { display_name: `Guest User` },
+      preferred_language: 'ur',
+      consent: { tos_accepted: true, tos_accepted_at: new Date() },
+      role: 'guest',
+      is_guest: true,
+      status: 'active'
+    });
+
+    user.last_login_at = new Date();
+    await user.save();
+
+    // Create guest session with call limit
+    const { accessToken, sessionId } = await createSession(user._id, req, res, true);
+
+    return res.json({
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        is_guest: true,
+        display_name: user.profile?.display_name || 'Guest User'
+      },
+      access_token: accessToken,
+      session_id: sessionId,
+      call_limit: 5,
+      remaining_calls: 5
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to start guest session' });
   }
 };
 // ---------- Profile routes ----------
@@ -200,6 +274,7 @@ const resetPassword = async (req, res) => {
 };
 
 export default {
+  devGuestLogin,
   signup,
   signin,
   getProfile,
