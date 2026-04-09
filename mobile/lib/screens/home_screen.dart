@@ -9,6 +9,7 @@ import 'signin_screen.dart';
 import 'lawyer_dashboard.dart';
 import 'lawyer_connect_screen.dart';
 import 'legaltemplate_screen.dart';
+import 'user_profile_screen.dart';
 import '../config/api_config.dart';
 
 class LegalMateHome extends StatefulWidget {
@@ -225,6 +226,11 @@ class _LegalMateHomeState extends State<LegalMateHome> {
         currentIndex: _selectedIndex,
         onTap: (index) {
           setState(() => _selectedIndex = index);
+          
+          // Handle profile navigation
+          if (index == 3) {
+            _navigateTo(const UserProfileScreen());
+          }
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: darkGreen,
