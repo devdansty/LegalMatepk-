@@ -39,9 +39,11 @@ const UserSchema = new Schema({
 
   role: {
   type: String,
-  enum: ["citizen", "lawyer", "admin"],
+  enum: ["citizen", "lawyer", "admin", "guest"],
   default: "citizen"
 },
+
+  is_guest: { type: Boolean, default: false, index: true },
 
   profile: { type: ProfileSchema, default: {} },
 
