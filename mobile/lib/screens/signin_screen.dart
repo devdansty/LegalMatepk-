@@ -61,6 +61,7 @@ class _SignInScreenState extends State<SignInScreen> {
         return;
       }
     } else {
+      // Guest login - new guest user created each time
       try {
         final response = await http.post(
           ApiConfig.uri('/api/users/dev-guest-login'),
@@ -72,6 +73,7 @@ class _SignInScreenState extends State<SignInScreen> {
         if (response.statusCode == 200) {
           final accessToken = data['access_token'];
           final user = data['user'];
+          final callLimit = data['call_limit'] ?? 5;
 
           if (accessToken != null) {
             await secureStorage.write(key: 'accessToken', value: accessToken.toString());
@@ -79,8 +81,13 @@ class _SignInScreenState extends State<SignInScreen> {
 
           await secureStorage.write(
             key: 'role',
-            value: (user?['role'] ?? 'citizen').toString(),
+            value: (user?['role'] ?? 'guest').toString(),
           );
+
+          // Store guest session info
+          await secureStorage.write(key: 'is_guest', value: 'true');
+          await secureStorage.write(key: 'call_limit', value: callLimit.toString());
+          await secureStorage.write(key: 'remaining_calls', value: callLimit.toString());
         } else {
           final error = (data is Map && data['error'] != null)
               ? data['error'].toString()
@@ -145,6 +152,9 @@ class _SignInScreenState extends State<SignInScreen> {
 
         final role = user?['role'] ?? 'citizen';
         await secureStorage.write(key: 'role', value: role);
+        
+        // Mark as non-guest for regular signin
+        await secureStorage.write(key: 'is_guest', value: 'false');
 
         if (!mounted) return;
 
@@ -265,8 +275,8 @@ class _SignInScreenState extends State<SignInScreen> {
                     _quickLoginAsRole("citizen");
                   },
                   child: const Text(
-                    "Log in as Guest",
-                    style: TextStyle(color: Colors.black54),
+                    "Continue as Guest (Limited Access - 5 API calls)",
+                    style: TextStyle(color: Colors.black54, fontSize: 12),
                   ),
                 ),
               ),
@@ -276,8 +286,8 @@ class _SignInScreenState extends State<SignInScreen> {
                     _quickLoginAsRole("lawyer");
                   },
                   child: const Text(
-                    "Log in as Lawyer",
-                    style: TextStyle(color: Colors.black54),
+                    "Test Lawyer Account",
+                    style: TextStyle(color: Colors.black54, fontSize: 12),
                   ),
                 ),
               ),
