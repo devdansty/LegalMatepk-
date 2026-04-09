@@ -1,7 +1,9 @@
 ﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'signin_screen.dart';
+import 'home_screen.dart';
 import '../config/api_config.dart';
 
 class CitizenSignUpScreen extends StatefulWidget {
@@ -17,10 +19,41 @@ class _CitizenSignUpScreenState extends State<CitizenSignUpScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmController = TextEditingController();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   bool loading = false;
 
   Future<void> signup() async {
+    // Validate all fields
+    if (nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Full name is required")),
+      );
+      return;
+    }
+
+    if (emailController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email is required")),
+      );
+      return;
+    }
+
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(emailController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a valid email")),
+      );
+      return;
+    }
+
+    // Validate password length
+    if (passwordController.text.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Password must be at least 8 characters")),
+      );
+      return;
+    }
+
     if (passwordController.text != confirmController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Passwords do not match")),
@@ -51,38 +84,41 @@ class _CitizenSignUpScreenState extends State<CitizenSignUpScreen> {
       final data = res.body.isNotEmpty ? jsonDecode(res.body) : {};
 
       if (res.statusCode == 201) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text("Signup Successful âœ…"),
-            content: const Text(
-              "Account created. Please verify your email or phone.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SignInScreen(),
-                    ),
-                  );
-                },
-                child: const Text("Login"),
-              ),
-            ],
+        // Store auth data
+        final accessToken = data['access_token'];
+        final user = data['user'];
+
+        if (accessToken != null) {
+          await _secureStorage.write(key: 'accessToken', value: accessToken.toString());
+        }
+
+        if (user != null) {
+          await _secureStorage.write(
+            key: 'role',
+            value: (user['role'] ?? 'citizen').toString(),
+          );
+        }
+
+        // Mark as non-guest
+        await _secureStorage.write(key: 'is_guest', value: 'false');
+
+        if (!mounted) return;
+
+        // Navigate directly to home
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const LegalMateHome(),
           ),
         );
       } else {
-        final errMsg = data['error'] ?? 'Signup failed';
+        final errMsg = data['error'] ?? data['message'] ?? 'Signup failed - please try again';
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(errMsg)));
       }
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Server error")));
+          .showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
     } finally {
       setState(() => loading = false);
     }
@@ -138,7 +174,10 @@ class _CitizenSignUpScreenState extends State<CitizenSignUpScreen> {
               TextField(
                 controller: passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: "Password"),
+                decoration: const InputDecoration(
+                  labelText: "Password (min 8 characters)",
+                  hintText: "Must be at least 8 characters"
+                ),
               ),
               const SizedBox(height: 16),
 
