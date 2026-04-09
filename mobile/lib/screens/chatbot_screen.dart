@@ -18,7 +18,7 @@ class ChatBotPage extends StatefulWidget {
 }
 
 class _ChatBotPageState extends State<ChatBotPage> {
-  bool useDummyReplies = true; // ðŸ” switch to false when backend is ready
+
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, String>> _messages = [];
   final ScrollController _scrollController = ScrollController();
@@ -119,73 +119,54 @@ class _ChatBotPageState extends State<ChatBotPage> {
     _controller.clear();
     _scrollToBottom();
 
-    // ================= DUMMY MODE =================
-    if (useDummyReplies) {
-      await Future.delayed(const Duration(seconds: 1));
-
-      // English demo responses
-      final List<String> englishReplies = [
-        "Hello! How can I help you with legal matters today?",
-        "That's a great question. Let me provide you with more information.",
-        "Based on Pakistani law, here's what you need to know.",
-        "I can assist you with property law, family law, or criminal law matters.",
-        "Would you like me to explain more about this legal concept?",
-      ];
-
-      // Urdu demo responses
-      final List<String> urduReplies = [
-        "السلام علیکم! میں آپ کی کیسے مدد کر سکتا ہوں؟",
-        "یہ ایک اچھا سوال ہے۔ میں آپ کو مزید معلومات دیتا ہوں۔",
-        "پاکستانی قانون کے مطابق، یہ جاننا ضروری ہے۔",
-        "میں جائیداد، خاندان یا فوجداری قانون میں مدد دے سکتا ہوں۔",
-        "کیا آپ چاہتے ہیں کہ میں اس قانونی تصور کی مزید وضاحت کروں؟",
-      ];
-
-      // Determine which language response to use
-      String selectedReply = "";
+    // ================= REAL API CALL =================
+    try {
+      // Get auth token if available
+      var _accessToken = await secureStorage.read(key: 'accessToken');
+      var _isGuest = await secureStorage.read(key: 'is_guest');
       
-      if (_voiceMode == "en") {
-        // Force English
-        englishReplies.shuffle();
-        selectedReply = englishReplies.first;
-      } else if (_voiceMode == "ur") {
-        // Force Urdu
-        urduReplies.shuffle();
-        selectedReply = urduReplies.first;
-      } else {
-        // Auto mode: detect input language
-        final inputLanguage = _detectLanguage(finalMessage);
-        if (inputLanguage == "ur") {
-          urduReplies.shuffle();
-          selectedReply = urduReplies.first;
-        } else {
-          englishReplies.shuffle();
-          selectedReply = englishReplies.first;
+      // Check guest call limit before sending
+      if (_isGuest == 'true') {
+        var remainingCalls = await secureStorage.read(key: 'remaining_calls');
+        int remaining = int.tryParse(remainingCalls ?? '0') ?? 0;
+        
+        if (remaining <= 0) {
+          setState(() => _isLoading = false);
+          _showError("Guest session limit reached. Please sign up for unlimited access.");
+          return;
         }
       }
 
-      final botReply = selectedReply;
+      final headers = {
+        'Content-Type': 'application/json',
+        if (_accessToken != null) 'Authorization': 'Bearer $_accessToken',
+      };
 
-      setState(() {
-        _messages.add({"role": "bot", "text": botReply});
-        _isLoading = false;
-      });
-      _scrollToBottom();
-      return;
-    }
-
-    // ================= REAL API MODE =================
-    try {
       final response = await http.post(
         ApiConfig.uri('/api/chatbot'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({"message": finalMessage, "session_id": "session-1"}),
       ).timeout(const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final botReply =
-        (data['reply'] ?? data['message'] ?? '').toString();
+        final botReply = (data['reply'] ?? data['message'] ?? '').toString();
+
+        // Update guest call info if available
+        if (_isGuest == 'true' && data['guest_session'] != null) {
+          final guestInfo = data['guest_session'];
+          final remainingCalls = guestInfo['remaining_calls'] ?? 0;
+          await secureStorage.write(key: 'remaining_calls', value: remainingCalls.toString());
+          
+          // Show warning if running out of calls
+          if (remainingCalls == 1) {
+            _showError("Warning: Only 1 API call remaining. Please sign up to continue.", 
+              duration: const Duration(seconds: 6));
+          } else if (remainingCalls == 0) {
+            _showError("Guest session limit reached. Please sign up for unlimited access.", 
+              duration: const Duration(seconds: 6));
+          }
+        }
 
         setState(() {
           _messages.add({"role": "bot", "text": botReply});
@@ -193,6 +174,10 @@ class _ChatBotPageState extends State<ChatBotPage> {
         });
 
         _scrollToBottom();
+      } else if (response.statusCode == 403) {
+        setState(() => _isLoading = false);
+        final data = jsonDecode(response.body);
+        _showError(data['error'] ?? "Access denied: ${response.statusCode}");
       } else {
         setState(() => _isLoading = false);
         _showError("Server error: ${response.statusCode}");
