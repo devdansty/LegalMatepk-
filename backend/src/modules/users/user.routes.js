@@ -7,9 +7,12 @@ const router = express.Router();
 
 // Signup
 router.post("/signup", [
-  body("email").isEmail(),
-  body("password").isLength({ min: 8 })
+  body("email").isEmail().withMessage("Invalid email address"),
+  body("password").isLength({ min: 8 }).withMessage("Password must be at least 8 characters")
 ], userCtrl.signup);
+
+// Temporary guest citizen login for testing
+router.post("/dev-guest-login", userCtrl.devGuestLogin);
 
 // Signin
 router.post("/signin", [
