@@ -59,28 +59,30 @@ class _OcrScreenState extends State<OcrScreen> {
     });
 
     try {
-      // Get JWT token
+      // Get authentication token and guest status
       final accessToken = await _secureStorage.read(key: 'accessToken');
-      final hasToken = accessToken != null && accessToken.isNotEmpty;
-      if (!hasToken && !_allowGuestTesting) {
+      final isGuest = await _secureStorage.read(key: 'is_guest');
+      
+      // Check if user is guest
+      if (isGuest == 'true') {
+        _showError("This feature is not available for guest users. Please sign up to use Document Analyzer.");
+        setState(() => _isProcessing = false);
+        return;
+      }
+
+      // Check if user is authenticated
+      if (accessToken == null || accessToken.isEmpty) {
         _showError("Authentication token not found. Please login again.");
         setState(() => _isProcessing = false);
         return;
       }
 
-      if (!hasToken && _allowGuestTesting) {
-        debugPrint("[OCR_UI_DEBUG] Guest testing mode active: sending request without Authorization header");
-      }
-
       // Prepare request
-
       final url = ApiConfig.uri('/api/ocr');
       var request = http.MultipartRequest('POST', url);
       
-      // Add headers
-      if (hasToken) {
-        request.headers['Authorization'] = 'Bearer $accessToken';
-      }
+      // Add authentication header
+      request.headers['Authorization'] = 'Bearer $accessToken';
 
       // Add file
       request.files.add(
@@ -88,8 +90,8 @@ class _OcrScreenState extends State<OcrScreen> {
       );
 
       // Add query (combine default + user input)
-        String finalQuery =
-          "Please summarize and clearly explain the key points and important information from the attached document in a concise and professional manner.";
+      String finalQuery =
+        "Please summarize and clearly explain the key points and important information from the attached document in a concise and professional manner.";
       if (_queryController.text.trim().isNotEmpty) {
         finalQuery += " ${_queryController.text.trim()}";
       }
@@ -113,6 +115,10 @@ class _OcrScreenState extends State<OcrScreen> {
             _isProcessing = false;
           });
         }
+      } else if (response.statusCode == 403) {
+        final data = json.decode(response.body);
+        _showError(data['error'] ?? "Access denied: This feature requires a full account");
+        setState(() => _isProcessing = false);
       } else {
         final data = json.decode(response.body);
         setState(() {
