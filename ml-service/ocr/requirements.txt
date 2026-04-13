@@ -8,3 +8,4 @@ opencv-python
 python-multipart
 setuptools 
 wheel
+dotenv
