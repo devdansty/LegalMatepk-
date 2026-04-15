@@ -9,17 +9,41 @@ export const pythonClient = axios.create({
 
 /**
  * Internal method - sends prompt to Python chatbot
+ * Handles streaming response from new Qwen3-14B streaming API
+ * Collects text chunks and returns complete response
  */
 const _sendToPython = async (message) => {
-  const response = await pythonClient.post("/generate", {
-    prompt: message
-  });
+  try {
+    const response = await pythonClient.post("/generate", {
+      prompt: message
+    }, {
+      responseType: 'stream'
+    });
 
-  if (response.data && response.data.response) {
-    return response.data.response;
+    // Collect streaming text chunks into complete response
+    return new Promise((resolve, reject) => {
+      let fullResponse = '';
+      
+      response.data.on('data', (chunk) => {
+        fullResponse += chunk.toString();
+      });
+      
+      response.data.on('end', () => {
+        if (fullResponse) {
+          resolve(fullResponse);
+        } else {
+          resolve("I couldn't generate a legal response at this time.");
+        }
+      });
+      
+      response.data.on('error', (error) => {
+        reject(error);
+      });
+    });
+  } catch (error) {
+    console.error("Error calling Python API:", error?.message);
+    throw error;
   }
-
-  return "I couldn't generate a legal response at this time.";
 };
 
 /**
