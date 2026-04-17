@@ -1,4 +1,5 @@
 import express from "express";
+import { requireAuth, requireNotGuest } from "../../shared/middleware/auth.js";
 import {
   listTemplates,
   getTemplate,
@@ -53,10 +54,11 @@ router.get("/:id", getTemplate);
 /**
  * POST /api/templates/generate
  * Generate a filled .docx document from template with user values.
+ * Requires: Authentication (NOT for guests)
  * Body: { templateId: "...", fieldValues: { field: "value", ... } }
  * Returns: .docx file stream for download
  */
-router.post("/generate", generateDocument);
+router.post("/generate", requireAuth(), requireNotGuest(), generateDocument);
 
 // ── Write (admin / seed operations) ───────────────────────────────────────
 // TODO: protect with requireAuth() middleware once an admin role is added.
