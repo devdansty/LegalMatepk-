@@ -13,8 +13,10 @@ const PYTHON_OCR_SERVICE_URL =
   "http://localhost:8000";
 const OCR_EXTRACT_ENDPOINT = `${PYTHON_OCR_SERVICE_URL}/ocr/extract`;
 
-// PLACEHOLDER: Update this to actual Qwen 2 model service endpoint
-const QWEN2_MODEL_URL = process.env.QWEN2_MODEL_URL || "http://localhost:8000";
+const QWEN2_MODEL_URL =
+  process.env.QWEN2_MODEL_URL ||
+  process.env.PYTHON_API_URL ||
+  "http://localhost:8000";
 const QWEN2_SUMMARIZE_ENDPOINT = `${QWEN2_MODEL_URL}/api/summarize`;
 
 // Default summarizer query if user doesn't provide one
@@ -69,11 +71,14 @@ export const callOCRService = async (fileBuffer, filename, mimeType) => {
 
     const responseTime = Date.now() - startTime;
 
-    console.log(`[OCR Service] Successfully extracted text in ${responseTime}ms`);
+    console.log(`[OCR Service] Successfully extracted text in ${responseTime}ms using ${response.data.engine_used || 'paddle_ocr'}`);
 
     return {
       extracted_text: response.data.raw_text || response.data.text || response.data.extracted_text || "",
       confidence_score: response.data.confidence || null,
+      engine_used: response.data.engine_used || "paddle_ocr",
+      language: response.data.language || "unknown",
+      routing_reason: response.data.routing_reason || null,
       status: "success",
       response_time_ms: responseTime,
       raw_response: response.data
@@ -121,7 +126,7 @@ export const callQwen2Model = async (extractedText, userQuery = null) => {
         headers: {
           "Content-Type": "application/json"
         },
-        timeout: 60000 // 60 second timeout for model inference
+        timeout: 120000 // 120 second timeout for model inference
       }
     );
 
@@ -130,7 +135,11 @@ export const callQwen2Model = async (extractedText, userQuery = null) => {
     console.log(`[Qwen2 Model] Successfully generated summary in ${responseTime}ms`);
 
     return {
-      summarized_text: response.data.summary || response.data.result || "",
+      summarized_text:
+        response.data.summary ||
+        response.data.response ||
+        response.data.result ||
+        "",
       status: "success",
       response_time_ms: responseTime,
       raw_response: response.data

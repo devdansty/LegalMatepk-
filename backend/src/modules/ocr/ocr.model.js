@@ -26,7 +26,10 @@ const OCRResultSchema = new Schema({
       enum: ["pending", "success", "failed"],
       default: "pending"
     },
-    extraction_error: { type: String, default: null }
+    extraction_error: { type: String, default: null },
+    engine_used: { type: String, enum: ["paddle_ocr", "vision_ai"], default: "paddle_ocr" }, // Which OCR engine was used
+    language_detected: { type: String, default: "unknown" }, // Detected script: urdu, english, mixed, unknown
+    routing_reason: { type: String, default: null } // Why Vision AI was selected (if applicable)
   },
 
   // User query and summarization

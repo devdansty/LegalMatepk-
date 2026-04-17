@@ -1,5 +1,6 @@
 import OCRResult from "./ocr.model.js";
 import {
+  callQwen2Model,
   callOCRService,
   isSupportedFileType,
   getFileTypeFromMime,
@@ -109,7 +110,18 @@ export const handleDocumentSummarization = async (req, res) => {
 
     console.log(`[OCR Controller] Text extraction successful. Extracted ${ocrResponse.extracted_text.length} characters`);
 
-    // Step 2: Now create OCR result document in database (only on success)
+    // Step 2: Summarize the extracted text with the shared Python model service
+    console.log("[OCR Controller] Step 2: Calling summarization service...");
+    const summaryResponse = await callQwen2Model(
+      ocrResponse.extracted_text,
+      isDefaultQuery ? null : query
+    );
+
+    const finalQuery = isDefaultQuery ? getDefaultQuery() : query;
+    const totalProcessingTime =
+      ocrResponse.response_time_ms + (summaryResponse.response_time_ms || 0);
+
+    // Step 3: Create OCR result document in database
     console.log(`[OCR Controller] Creating OCR result document in DB...`);
     const ocrResult = new OCRResult({
       user_id: userId,
@@ -126,14 +138,28 @@ export const handleDocumentSummarization = async (req, res) => {
       extracted_text: {
         raw_text: ocrResponse.extracted_text,
         confidence_score: ocrResponse.confidence_score,
-        extraction_status: "success"
+        extraction_status: "success",
+        engine_used: ocrResponse.engine_used || "paddle_ocr",
+        language_detected: ocrResponse.language || "unknown",
+        routing_reason: ocrResponse.routing_reason || null
       },
       summary: {
-        summarization_status: "pending"
+        summarized_text: summaryResponse.summarized_text,
+        summarization_status:
+          summaryResponse.status === "success" ? "success" : "failed",
+        summarization_error:
+          summaryResponse.status === "failed" ? summaryResponse.error : null,
+        model_used: "qwen-2",
+        generated_at:
+          summaryResponse.status === "success" ? new Date() : null
       },
       processing_metadata: {
+        ocr_engine: ocrResponse.engine_used || "paddle_ocr",
+        ocr_routing_decision: ocrResponse.routing_reason || "standard paddle extraction",
         ocr_service_response_time_ms: ocrResponse.response_time_ms,
-        total_processing_time_ms: ocrResponse.response_time_ms
+        summarization_service_response_time_ms:
+          summaryResponse.response_time_ms || null,
+        total_processing_time_ms: totalProcessingTime
       }
     });
     await ocrResult.save();
@@ -142,8 +168,31 @@ export const handleDocumentSummarization = async (req, res) => {
       `[OCR Controller] Processing complete. Saved to DB with ID: ${ocrResult._id}. Total time: ${ocrResult.processing_metadata.total_processing_time_ms}ms`
     );
 
-    // AI summarization is intentionally deferred for now
-    const finalQuery = isDefaultQuery ? getDefaultQuery() : query;
+    if (summaryResponse.status === "failed") {
+      console.error(
+        `[OCR Controller] Summarization failed: ${summaryResponse.error}`
+      );
+
+      return res.status(502).json({
+        success: false,
+        error: "Document summarization failed",
+        details: summaryResponse.error,
+        error_details: summaryResponse.error_details,
+        data: {
+          ocrResultId: ocrResult._id,
+          extractedText: ocrResult.extracted_text.raw_text,
+          query: finalQuery,
+          wasDefaultQuery: isDefaultQuery,
+          stage: "ocr_complete_summary_failed",
+          processingTime: {
+            ocr_ms: ocrResult.processing_metadata.ocr_service_response_time_ms,
+            summarization_ms:
+              ocrResult.processing_metadata.summarization_service_response_time_ms,
+            total_ms: ocrResult.processing_metadata.total_processing_time_ms
+          }
+        }
+      });
+    }
 
     // Return successful response
     res.status(200).json({
@@ -151,15 +200,18 @@ export const handleDocumentSummarization = async (req, res) => {
       message: "Document processed successfully",
       data: {
         ocrResultId: ocrResult._id,
-        extractedText: ocrResult.extracted_text.raw_text,
-        summary: ocrResult.extracted_text.raw_text,
+        extractedText: ocrResult.summary.summarized_text,
+        rawExtractedText: ocrResult.extracted_text.raw_text,
+        summary: ocrResult.summary.summarized_text,
+        summarizedText: ocrResult.summary.summarized_text,
         query: finalQuery,
         wasDefaultQuery: isDefaultQuery,
         confidenceScore: ocrResult.extracted_text.confidence_score,
-        stage: "ocr_only",
+        stage: "ocr_and_summary",
         processingTime: {
           ocr_ms: ocrResult.processing_metadata.ocr_service_response_time_ms,
-          summarization_ms: null,
+          summarization_ms:
+            ocrResult.processing_metadata.summarization_service_response_time_ms,
           total_ms: ocrResult.processing_metadata.total_processing_time_ms
         }
       }
