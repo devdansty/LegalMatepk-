@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -21,7 +21,12 @@ class LawyerProfileScreen extends StatefulWidget {
   State<LawyerProfileScreen> createState() => _LawyerProfileScreenState();
 }
 
-class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
+class _LawyerProfileScreenState extends State<LawyerProfileScreen>
+    with TickerProviderStateMixin {
+  // Animation controllers
+  late AnimationController _entranceController;
+  late Animation<double> _contentAnimation;
+
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final TextEditingController _queryController = TextEditingController();
 
@@ -38,8 +43,25 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
     _lawyer = widget.initialData;
     _loadAll();
+  }
+
+  void _setupAnimations() {
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _contentAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+
+    _entranceController.forward();
   }
 
   Future<void> _loadAll() async {
@@ -68,6 +90,9 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
           _lawyer = parsed;
           _isLoadingProfile = false;
         });
+        // Trigger animation when profile data loads
+        _entranceController.reset();
+        _entranceController.forward();
         return;
       }
 
@@ -228,6 +253,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
   @override
   void dispose() {
+    _entranceController.dispose();
     _queryController.dispose();
     super.dispose();
   }
@@ -238,13 +264,25 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lawyer Profile'),
-        backgroundColor: darkGreen,
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFF10300C),
+        elevation: 1,
+        toolbarHeight: 70,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Lawyer Profile',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: Colors.white,
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: _isCheckingStatus ? null : _loadConnectionStatus,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             tooltip: 'Refresh request status',
           )
         ],
@@ -284,7 +322,18 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
+      child: AnimatedBuilder(
+        animation: _contentAnimation,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _contentAnimation.value,
+            child: Transform.translate(
+              offset: Offset(0, 20 * (1 - _contentAnimation.value)),
+              child: child,
+            ),
+          );
+        },
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
@@ -395,8 +444,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
             ),
           )
         ],
-      ),
-    );
+      ),      ),    );
   }
 
   Widget _buildStatusLine() {

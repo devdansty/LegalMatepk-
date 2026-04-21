@@ -11,7 +11,12 @@ class UserProfileScreen extends StatefulWidget {
   State<UserProfileScreen> createState() => _UserProfileScreenState();
 }
 
-class _UserProfileScreenState extends State<UserProfileScreen> {
+class _UserProfileScreenState extends State<UserProfileScreen>
+    with TickerProviderStateMixin {
+  // Animation controllers
+  late AnimationController _entranceController;
+  late Animation<double> _contentAnimation;
+
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   
   bool _isLoading = true;
@@ -21,13 +26,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic>? _userProfile;
   String? _userRole;
 
+  static const Color primaryGreen = Color(0xFF10300C);
   static const Color darkGreen = Color(0xFF004B23);
   static const Color offWhite = Color(0xFFF8F9F9);
 
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
     _loadUserProfile();
+  }
+
+  void _setupAnimations() {
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _contentAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+    
+    // Animation will be triggered when data loads
   }
 
   Future<void> _loadUserProfile() async {
@@ -45,6 +68,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _isGuest = true;
           _isLoading = false;
         });
+        // Trigger animation for guest state
+        _entranceController.forward();
         return;
       }
 
@@ -78,6 +103,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _userProfile = data;
           _isLoading = false;
         });
+        // Trigger animation when profile loads
+        _entranceController.forward();
       } else {
         final data = jsonDecode(response.body);
         setState(() {
@@ -95,18 +122,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: offWhite,
       appBar: AppBar(
+        backgroundColor: primaryGreen,
+        elevation: 1,
+        toolbarHeight: 70,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
           'My Profile',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: Colors.white,
+          ),
         ),
-        centerTitle: true,
-        backgroundColor: darkGreen,
-        elevation: 4,
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
           ? const Center(
@@ -126,69 +166,81 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildGuestPlaceholder() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: darkGreen.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.person_outline,
-                size: 60,
-                color: darkGreen,
-              ),
+      child: AnimatedBuilder(
+        animation: _contentAnimation,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _contentAnimation.value,
+            child: Transform.translate(
+              offset: Offset(0, 20 * (1 - _contentAnimation.value)),
+              child: child,
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'You are browsing as Guest',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: darkGreen,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Guest users have limited access. Create an account to unlock your full profile and save your data.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                // Navigate to sign in
-                Navigator.of(context).pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: darkGreen,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: darkGreen.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                child: const Icon(
+                  Icons.person_outline,
+                  size: 60,
+                  color: darkGreen,
                 ),
               ),
-              child: const Text(
-                'Sign Up / Log In',
+              const SizedBox(height: 24),
+              const Text(
+                'You are browsing as Guest',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: darkGreen,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                'Guest users have limited access. Create an account to unlock your full profile and save your data.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () {
+                  // Navigate to sign in
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: darkGreen,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Sign Up / Log In',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -260,128 +312,140 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
-      child: Column(
-        children: [
-          // Avatar Section
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: darkGreen.withOpacity(0.1),
-              shape: BoxShape.circle,
+      child: AnimatedBuilder(
+        animation: _contentAnimation,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _contentAnimation.value,
+            child: Transform.translate(
+              offset: Offset(0, 20 * (1 - _contentAnimation.value)),
+              child: child,
             ),
-            child: Icon(
-              role == 'lawyer' ? Icons.gavel : Icons.person,
-              size: 50,
-              color: darkGreen,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Name
-          Text(
-            displayName,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: darkGreen,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // Role Badge
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: role == 'lawyer'
-                  ? Colors.purple.withOpacity(0.1)
-                  : darkGreen.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              role.toUpperCase(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: role == 'lawyer' ? Colors.purple[700] : darkGreen,
+          );
+        },
+        child: Column(
+          children: [
+            // Avatar Section
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: darkGreen.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                role == 'lawyer' ? Icons.gavel : Icons.person,
+                size: 50,
+                color: darkGreen,
               ),
             ),
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 16),
 
-          // Profile Information Card
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.grey[300]!,
-                width: 1,
+            // Name
+            Text(
+              displayName,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: darkGreen,
               ),
             ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildProfileField(
-                  label: 'Email',
-                  value: email,
-                  icon: Icons.email_outlined,
-                ),
-                const Divider(height: 24),
-                _buildProfileField(
-                  label: 'Phone',
-                  value: phone,
-                  icon: Icons.phone_outlined,
-                ),
-                const Divider(height: 24),
-                _buildProfileField(
-                  label: 'Member Since',
-                  value: _formatDate(createdAt),
-                  icon: Icons.calendar_today_outlined,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 4),
 
-          // Role-Specific Sections
-          if (role == 'lawyer') _buildLawyerSection(),
-          if (role == 'citizen') _buildCitizenSection(),
-
-          const SizedBox(height: 24),
-
-          // Edit Profile Button
-          ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Edit profile feature coming soon'),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: darkGreen,
+            // Role Badge
+            Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
+                horizontal: 12,
+                vertical: 6,
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+              decoration: BoxDecoration(
+                color: role == 'lawyer'
+                    ? Colors.purple.withOpacity(0.1)
+                    : darkGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                role.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: role == 'lawyer' ? Colors.purple[700] : darkGreen,
+                ),
               ),
             ),
-            icon: const Icon(Icons.edit, color: Colors.white),
-            label: const Text(
-              'Edit Profile',
-              style: TextStyle(
+            const SizedBox(height: 32),
+
+            // Profile Information Card
+            Container(
+              decoration: BoxDecoration(
                 color: Colors.white,
-                fontWeight: FontWeight.w600,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey[300]!,
+                  width: 1,
+                ),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildProfileField(
+                    label: 'Email',
+                    value: email,
+                    icon: Icons.email_outlined,
+                  ),
+                  const Divider(height: 24),
+                  _buildProfileField(
+                    label: 'Phone',
+                    value: phone,
+                    icon: Icons.phone_outlined,
+                  ),
+                  const Divider(height: 24),
+                  _buildProfileField(
+                    label: 'Member Since',
+                    value: _formatDate(createdAt),
+                    icon: Icons.calendar_today_outlined,
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+
+            // Role-Specific Sections
+            if (role == 'lawyer') _buildLawyerSection(),
+            if (role == 'citizen') _buildCitizenSection(),
+
+            const SizedBox(height: 24),
+
+            // Edit Profile Button
+            ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Edit profile feature coming soon'),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: darkGreen,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: const Icon(Icons.edit, color: Colors.white),
+              label: const Text(
+                'Edit Profile',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

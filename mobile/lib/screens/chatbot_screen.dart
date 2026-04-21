@@ -6,25 +6,36 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/STT.dart';
 import '../config/api_config.dart';
-import 'signin_screen.dart';
 
 class ChatBotPage extends StatefulWidget {
-  const ChatBotPage({super.key});
+  final String? initialQuery;
+
+  const ChatBotPage({super.key, this.initialQuery});
 
   @override
   State<ChatBotPage> createState() => _ChatBotPageState();
 }
 
-class _ChatBotPageState extends State<ChatBotPage> {
+class _ChatBotPageState extends State<ChatBotPage>
+    with TickerProviderStateMixin {
 
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, String>> _messages = [];
   final ScrollController _scrollController = ScrollController();
+  final FlutterSecureStorage secureStorage = const FlutterSecureStorage();
 
   final STTService _sttService = STTService();
   final FlutterTts _flutterTts = FlutterTts();
+
+  // Animation controllers
+  late AnimationController _entranceController;
+  late Animation<double> _iconAnimation;
+  late Animation<double> _headingAnimation;
+  late Animation<double> _subtitleAnimation;
+  late List<Animation<double>> _cardAnimations;
 
   bool _isListening = false;
   bool _isLoading = false;
@@ -33,13 +44,13 @@ class _ChatBotPageState extends State<ChatBotPage> {
   Timer? _silenceTimer;
   Timer? _errorTimer;
   bool _isRestarting = false;
-  final Duration _silenceDuration = const Duration(seconds: 4); // 4 seconds of silence to stop
+  final Duration _silenceDuration = const Duration(seconds: 4);
 
   String _lastRecognizedText = '';
   String _sessionPrefix = '';
-  String _currentLanguage = "en_US"; // Store current language for restart
+  String _currentLanguage = "en_US";
 
-  String _voiceMode = "auto"; // auto | ur | en
+  String _voiceMode = "auto";
 
   // OCR Image attachment
   File? _attachedImage;
@@ -47,11 +58,70 @@ class _ChatBotPageState extends State<ChatBotPage> {
   bool _isExtractingOcr = false;
   String? _extractedOcrText;
 
+  // Color scheme
+  static const Color primaryGreen = Color(0xFF10300C);
+  static const Color offWhite = Color(0xFFF8F9F9);
+  static const Color textDark = Color(0xFF333333);
+  static const Color textMedium = Color(0xFF666666);
+  static const Color textLight = Color(0xFF999999);
+  static const Color borderColor = Color(0xFFE0E0E0);
+
   // ================= INIT =================
   @override
   void initState() {
     super.initState();
     _initTts();
+    _setupAnimations();
+    
+    // Set initial query if provided
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      _controller.text = widget.initialQuery!;
+    }
+  }
+
+  void _setupAnimations() {
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _iconAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.2, curve: Curves.easeOut),
+      ),
+    );
+
+    _headingAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.1, 0.35, curve: Curves.easeOut),
+      ),
+    );
+
+    _subtitleAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.2, 0.45, curve: Curves.easeOut),
+      ),
+    );
+
+    // 4 common issue cards
+    _cardAnimations = List.generate(
+      4,
+      (index) => Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(
+          parent: _entranceController,
+          curve: Interval(
+            0.3 + (index * 0.1),
+            0.6 + (index * 0.1),
+            curve: Curves.easeOut,
+          ),
+        ),
+      ),
+    );
+
+    _entranceController.forward();
   }
 
   Future<void> _initTts() async {
@@ -477,6 +547,58 @@ class _ChatBotPageState extends State<ChatBotPage> {
     }
   }
 
+  void _showHistoryDialog() {
+    if (_messages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No chat history yet')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Chat History'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: _messages.length,
+            itemBuilder: (context, index) {
+              final msg = _messages[index];
+              final isUser = msg["role"] == "user";
+              final text = msg["text"] ?? "";
+              
+              return ListTile(
+                leading: Icon(
+                  isUser ? Icons.person : Icons.smart_toy,
+                  color: primaryGreen,
+                  size: 18,
+                ),
+                title: Text(
+                  text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isUser ? primaryGreen : textDark,
+                    fontWeight: isUser ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -485,58 +607,230 @@ class _ChatBotPageState extends State<ChatBotPage> {
     _flutterTts.stop();
     _silenceTimer?.cancel();
     _errorTimer?.cancel();
+    _entranceController.dispose();
     super.dispose();
   }
 
   // ================= UI =================
   @override
   Widget build(BuildContext context) {
-    const bubbleGreen = Color(0xFF006400);
+    final hasMessages = _messages.isNotEmpty;
 
     return Scaffold(
+      backgroundColor: offWhite,
       appBar: AppBar(
-        title: const Text('Legal Chatbot'),
-        backgroundColor: const Color(0xFF004B23),
+        backgroundColor: primaryGreen,
+        elevation: 1,
+        toolbarHeight: 70,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'LegalMate AI',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: Colors.white,
+          ),
+        ),
+        actions: [
+          PopupMenuButton(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              if (value == 'history') {
+                _showHistoryDialog();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem(
+                value: 'history',
+                child: Text('History'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
-          _buildLanguageToggle(),
-          Expanded(child: _buildChatList()),
-          if (_isLoading) const CircularProgressIndicator(),
+          Expanded(
+            child: hasMessages
+                ? _buildChatList()
+                : _buildWelcomeScreen(),
+          ),
           _buildInputBar(),
         ],
       ),
     );
   }
 
-  Widget _buildLanguageToggle() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Wrap(
-        spacing: 8,
-        children: [
-          _langChip("Auto", "auto"),
-          _langChip("اردو", "ur"),
-          _langChip("English", "en"),
-        ],
+  Widget _buildWelcomeScreen() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: Column(
+          children: [
+            // Icon with animation
+            FadeAndSlideUp(
+              animation: _iconAnimation,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: primaryGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Icon(
+                  Icons.psychology_outlined,
+                  color: primaryGreen,
+                  size: 40,
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // Heading
+            FadeAndSlideUp(
+              animation: _headingAnimation,
+              child: Text(
+                'I am your legal assistant',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: textDark,
+                  height: 1.2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Subtitle
+            FadeAndSlideUp(
+              animation: _subtitleAnimation,
+              child: Text(
+                'Ask freely � your problem stays confidential',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: textMedium,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+
+            // Common issues label
+            FadeAndSlideUp(
+              animation: _subtitleAnimation,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Common issues:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: primaryGreen,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Common issue cards
+            _buildCommonIssueCard(
+              index: 0,
+              icon: Icons.person_outline,
+              title: 'Tenant won\'t leave',
+              onTap: () => _handleCommonIssueSelect('Tenant won\'t leave'),
+            ),
+            const SizedBox(height: 12),
+            _buildCommonIssueCard(
+              index: 1,
+              icon: Icons.location_on,
+              title: 'Land illegally occupied',
+              onTap: () => _handleCommonIssueSelect('Land illegally occupied'),
+            ),
+            const SizedBox(height: 12),
+            _buildCommonIssueCard(
+              index: 2,
+              icon: Icons.file_present_outlined,
+              title: 'How to file an FIR',
+              onTap: () => _handleCommonIssueSelect('How to file an FIR'),
+            ),
+            const SizedBox(height: 12),
+            _buildCommonIssueCard(
+              index: 3,
+              icon: Icons.description_outlined,
+              title: 'What is a rent agreement',
+              onTap: () => _handleCommonIssueSelect('What is a rent agreement'),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _langChip(String label, String value) {
-    final selected = _voiceMode == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => setState(() => _voiceMode = value),
+  Widget _buildCommonIssueCard({
+    required int index,
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return FadeAndSlideUp(
+      animation: _cardAnimations[index],
+      child: ScaleOnTapIcon(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: primaryGreen, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: textDark,
+                  ),
+                ),
+              ),
+              Icon(Icons.arrow_forward, color: primaryGreen, size: 20),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildChatList() {
-    const bubbleGreen = Color(0xFF006400);
+  void _handleCommonIssueSelect(String issue) {
+    setState(() {
+      _controller.text = issue;
+    });
+  }
 
+  Widget _buildChatList() {
     return ListView.builder(
       controller: _scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: _messages.length,
       itemBuilder: (context, index) {
         final msg = _messages[index];
@@ -545,55 +839,67 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
         return Align(
           alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-          child: Row(
-            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                margin: const EdgeInsets.all(8),
-                padding: const EdgeInsets.all(12),
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.68,
-                ),
-                decoration: BoxDecoration(
-                  color: isUser ? bubbleGreen : Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            ),
+            decoration: BoxDecoration(
+              color: isUser ? primaryGreen : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: isUser
+                  ? null
+                  : Border.all(color: borderColor, width: 1),
+              boxShadow: [
+                if (!isUser)
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   text,
                   style: TextStyle(
-                    color: isUser ? Colors.white : Colors.black,
-                    fontSize: 15,
+                    color: isUser ? Colors.white : textDark,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
                   ),
                 ),
-              ),
-              if (!isUser)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: SizedBox(
-                    height: 32,
-                    width: 32,
-                    child: OutlinedButton(
-                      onPressed: () => _speak(text),
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        side: const BorderSide(
-                          color: bubbleGreen,
-                          width: 1.5,
+                if (!isUser)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.volume_up_outlined,
+                          size: 16,
+                          color: primaryGreen,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _speak(text),
+                          child: Text(
+                            'Listen',
+                            style: TextStyle(
+                              color: primaryGreen,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: const Icon(
-                        Icons.play_arrow,
-                        size: 18,
-                        color: bubbleGreen,
-                      ),
+                      ],
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -601,95 +907,172 @@ class _ChatBotPageState extends State<ChatBotPage> {
   }
 
   Widget _buildInputBar() {
-    const bubbleGreen = Color(0xFF006400);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (_isListening) _buildListeningLabel(),
+          // Error message
+          if (_errorMessage.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                _errorMessage,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
           // Image attachment preview
           if (_attachedImage != null) _buildImagePreview(),
-          // OCR extraction loading indicator
+
+          // OCR extraction loading
           if (_isExtractingOcr)
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 8),
               child: Row(
-                children: const [
-                  SizedBox(
+                children: [
+                  const SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(bubbleGreen),
+                      valueColor: AlwaysStoppedAnimation(primaryGreen),
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Text(
-                    "Extracting text from image...",
-                    style: TextStyle(fontSize: 12, color: bubbleGreen),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Extracting text from image...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textMedium,
+                    ),
                   ),
                 ],
               ),
             ),
+
+          // Input row
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Mic Button Column
+              // Mic button with listening state
               Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: Icon(
-                      _isListening ? Icons.mic : Icons.mic_none,
-                      color: bubbleGreen,
-                      size: _isListening ? 32 : 24,
-                    ),
-                    onPressed: _isListening ? _stopListening : _startListening,
-                  ),
                   if (_isListening)
-                    const Text(
-                      "Stop",
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: bubbleGreen,
-                        fontWeight: FontWeight.bold,
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        'Listening...',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
+                  ScaleOnTapIcon(
+                    onTap: _isListening ? _stopListening : _startListening,
+                    child: Icon(
+                      _isListening ? Icons.mic : Icons.mic_none,
+                      color: _isListening ? primaryGreen : textMedium,
+                      size: 22,
+                    ),
+                  ),
                 ],
               ),
-              // Attachment Button
-              IconButton(
-                icon: const Icon(Icons.attach_file, color: bubbleGreen),
-                onPressed: _isListening || _isExtractingOcr ? null : _pickImage,
-                tooltip: "Attach image",
+              const SizedBox(width: 8),
+
+              // Attachment button
+              ScaleOnTapIcon(
+                onTap: _pickImage,
+                child: const Icon(
+                  Icons.attachment,
+                  color: textMedium,
+                  size: 22,
+                ),
               ),
-              // Text Field
+              const SizedBox(width: 8),
+
+              // Text field
               Expanded(
-                child: Opacity(
-                  opacity: _isListening ? 0.5 : 1.0,
-                  child: TextField(
-                    controller: _controller,
-                    enabled: !_isListening && !_isExtractingOcr,
-                    maxLines: 4,
-                    minLines: 2,
-                    textInputAction: TextInputAction.newline,
-                    decoration: InputDecoration(
-                      hintText: "Ask LegalMate...",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: TextField(
+                  controller: _controller,
+                  maxLines: null,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _sendMessage(_controller.text),
+                  decoration: InputDecoration(
+                    hintText: 'Type your question...',
+                    hintStyle: const TextStyle(
+                      color: textLight,
+                      fontSize: 13,
                     ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: borderColor,
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: primaryGreen,
+                        width: 1.5,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: borderColor,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: textDark,
                   ),
                 ),
               ),
-              // Send Button
-              IconButton(
-                icon: const Icon(Icons.send, color: bubbleGreen),
-                onPressed: (_isListening || _isExtractingOcr)
-                    ? null
-                    : () => _sendMessage(_controller.text),
+              const SizedBox(width: 8),
+
+              // Send button
+              ScaleOnTapIcon(
+                onTap: _isLoading ? null : () => _sendMessage(_controller.text),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: primaryGreen,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.send,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -699,18 +1082,15 @@ class _ChatBotPageState extends State<ChatBotPage> {
   }
 
   Widget _buildImagePreview() {
-    const bubbleGreen = Color(0xFF006400);
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          // Image thumbnail
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: Image.file(
@@ -721,30 +1101,34 @@ class _ChatBotPageState extends State<ChatBotPage> {
             ),
           ),
           const SizedBox(width: 12),
-          // File info and clear button
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   _attachedImage!.path.split('/').last,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: textDark,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                 ),
-                if (_extractedOcrText != null)
-                  const Text(
-                    "Text extracted ✓",
-                    style: TextStyle(fontSize: 11, color: Colors.green),
+                const SizedBox(height: 2),
+                Text(
+                  'Ready to extract',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: textLight,
                   ),
+                ),
               ],
             ),
           ),
-          // Clear button
           IconButton(
             icon: const Icon(Icons.close, size: 20),
             onPressed: _clearAttachment,
-            tooltip: "Remove image",
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           ),
@@ -752,17 +1136,102 @@ class _ChatBotPageState extends State<ChatBotPage> {
       ),
     );
   }
+}
 
-  Widget _buildListeningLabel() {
-    String label = "ðŸŽ¤ Listening...";
-    if (_voiceMode == "auto") label = "ðŸŽ¤ Auto detecting...";
-    if (_voiceMode == "ur") label = "ðŸŽ¤ Listening in Urdu...";
-    if (_voiceMode == "en") label = "ðŸŽ¤ Listening in English...";
+// Custom animation widget for fade and slide up effect
+class FadeAndSlideUp extends StatelessWidget {
+  final Animation<double> animation;
+  final Widget child;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Text(label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey)),
+  const FadeAndSlideUp({
+    required this.animation,
+    required this.child,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: animation.value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - animation.value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
+
+// Custom widget for button tap scale animation
+class ScaleOnTapIcon extends StatefulWidget {
+  final VoidCallback? onTap;
+  final Widget child;
+
+  const ScaleOnTapIcon({
+    required this.onTap,
+    required this.child,
+    super.key,
+  });
+
+  @override
+  State<ScaleOnTapIcon> createState() => _ScaleOnTapIconState();
+}
+
+class _ScaleOnTapIconState extends State<ScaleOnTapIcon>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.85).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    _controller.forward();
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    _controller.reverse();
+    widget.onTap?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.onTap != null ? _onTapDown : null,
+      onTapUp: widget.onTap != null ? _onTapUp : null,
+      onTapCancel: widget.onTap != null
+          ? () {
+              _controller.reverse();
+            }
+          : null,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: widget.child,
+      ),
+    );
+  }
+    }

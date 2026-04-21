@@ -23,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF006400),
+      backgroundColor: const Color(0xFF10300C),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -37,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 borderRadius: BorderRadius.circular(60),
               ),
               child: const Icon(Icons.balance,
-                  color: Color(0xFF006400), size: 60),
+                  color: Color(0xFF10300C), size: 60),
             ),
             const SizedBox(height: 25),
             const Text(

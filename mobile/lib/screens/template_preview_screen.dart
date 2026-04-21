@@ -19,15 +19,44 @@ class TemplatePreviewScreen extends StatefulWidget {
   State<TemplatePreviewScreen> createState() => _TemplatePreviewScreenState();
 }
 
-class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> {
+class _TemplatePreviewScreenState extends State<TemplatePreviewScreen>
+    with TickerProviderStateMixin {
+  // Animation controllers
+  late AnimationController _entranceController;
+  late Animation<double> _contentAnimation;
+
   bool _isDownloading = false;
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
 
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
     _initializeNotifications();
     _requestNotificationPermission();
+  }
+
+  void _setupAnimations() {
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _contentAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+
+    // Start animation immediately when preview loads
+    _entranceController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
   }
 
   Future<void> _requestNotificationPermission() async {
@@ -190,17 +219,36 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryGreen = Color(0xFF10300C);
+    const Color offWhite = Color(0xFFF8F9F9);
+  
+
+
     return Scaffold(
+      backgroundColor: offWhite,
       appBar: AppBar(
-        title: const Text("Preview"),
-        backgroundColor: const Color(0xFF004B23),
+        backgroundColor: primaryGreen,
+        elevation: 1,
+        toolbarHeight: 70,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Template Preview',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: Column(
         children: [
           // Template Info Header
           Container(
             padding: const EdgeInsets.all(16),
-            color: const Color(0xFF004B23).withOpacity(0.05),
+            color: primaryGreen.withOpacity(0.08),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -209,7 +257,7 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF004B23),
+                    color: primaryGreen,
                   ),
                 ),
               ],
@@ -220,20 +268,32 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: SelectableText(
-                  widget.template.templateContent,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontFamily: 'Courier',
-                    color: Colors.black87,
-                    height: 1.6,
+              child: AnimatedBuilder(
+                animation: _contentAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _contentAnimation.value,
+                    child: Transform.translate(
+                      offset: Offset(0, 20 * (1 - _contentAnimation.value)),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    widget.template.templateContent,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontFamily: 'Courier',
+                      color: Colors.black87,
+                      height: 1.6,
+                    ),
                   ),
                 ),
               ),
@@ -271,7 +331,7 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> {
                     label: Text(_isDownloading ? 'Downloading...' : 'Download Template'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: Color(0xFF004B23)),
+                      side: const BorderSide(color: primaryGreen),
                     ),
                   ),
                 ),
@@ -292,7 +352,7 @@ class _TemplatePreviewScreenState extends State<TemplatePreviewScreen> {
                     icon: const Icon(Icons.edit_document),
                     label: const Text('Fill Document'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF004B23),
+                      backgroundColor: primaryGreen,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(

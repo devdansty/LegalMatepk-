@@ -15,7 +15,12 @@ class TemplateFormScreen extends StatefulWidget {
   State<TemplateFormScreen> createState() => _TemplateFormScreenState();
 }
 
-class _TemplateFormScreenState extends State<TemplateFormScreen> {
+class _TemplateFormScreenState extends State<TemplateFormScreen>
+    with TickerProviderStateMixin {
+  // Animation controllers
+  late AnimationController _entranceController;
+  late Animation<double> _contentAnimation;
+
   late List<TemplateField> _sortedFields;
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, String> _selectedOptions = {};
@@ -28,6 +33,7 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
     // Sort fields by order and group them
     _sortedFields = List.from(widget.template.fields);
     _sortedFields.sort((a, b) => a.order.compareTo(b.order));
@@ -42,6 +48,22 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
         _checkboxValues[field.name] = false;
       }
     }
+  }
+
+  void _setupAnimations() {
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _contentAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+
+    _entranceController.forward();
   }
 
   bool _validateCurrentField() {
@@ -97,6 +119,9 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
         setState(() {
           _currentFieldIndex++;
         });
+        // Trigger animation when moving to next field
+        _entranceController.reset();
+        _entranceController.forward();
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,6 +138,9 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
       setState(() {
         _currentFieldIndex--;
       });
+      // Trigger animation when moving to previous field
+      _entranceController.reset();
+      _entranceController.forward();
     }
   }
 
@@ -121,6 +149,9 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
       setState(() {
         _currentFieldIndex++;
       });
+      // Trigger animation when skipping field
+      _entranceController.reset();
+      _entranceController.forward();
     }
   }
 
@@ -197,6 +228,15 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
   }
 
   @override
+  void dispose() {
+    _entranceController.dispose();
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final currentField = _sortedFields[_currentFieldIndex];
     final progressPercent =
@@ -207,9 +247,23 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
         return true;
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9F9),
         appBar: AppBar(
-          title: const Text("Fill Document"),
-          backgroundColor: const Color(0xFF004B23),
+          backgroundColor: const Color(0xFF10300C),
+          elevation: 1,
+          toolbarHeight: 70,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Fill Document',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+              color: Colors.white,
+            ),
+          ),
         ),
         body: Column(
           children: [
@@ -262,50 +316,62 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
             // Form Content
             Expanded(
               child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Field Label
-                      Text(
-                        currentField.label,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF004B23),
-                        ),
+                child: AnimatedBuilder(
+                  animation: _contentAnimation,
+                  builder: (context, child) {
+                    return Opacity(
+                      opacity: _contentAnimation.value,
+                      child: Transform.translate(
+                        offset: Offset(0, 20 * (1 - _contentAnimation.value)),
+                        child: child,
                       ),
-                      const SizedBox(height: 8),
-
-                      // Field Description
-                      if (currentField.placeholder.isNotEmpty)
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Field Label
                         Text(
-                          currentField.placeholder,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
+                          currentField.label,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF004B23),
                           ),
                         ),
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 8),
 
-                      // Input Field Based on Type
-                      _buildInputField(currentField),
-
-                      // Error Message
-                      if (_errors.containsKey(currentField.name))
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Text(
-                            _errors[currentField.name]!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 12,
+                        // Field Description
+                        if (currentField.placeholder.isNotEmpty)
+                          Text(
+                            currentField.placeholder,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
                             ),
                           ),
-                        ),
-                    ],
+                        const SizedBox(height: 24),
+
+                        // Input Field Based on Type
+                        _buildInputField(currentField),
+
+                        // Error Message
+                        if (_errors.containsKey(currentField.name))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(
+                              _errors[currentField.name]!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -504,13 +570,5 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
           ),
         );
     }
-  }
-
-  @override
-  void dispose() {
-    for (var controller in _controllers.values) {
-      controller.dispose();
-    }
-    super.dispose();
   }
 }

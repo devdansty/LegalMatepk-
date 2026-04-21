@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -13,7 +13,12 @@ class OcrScreen extends StatefulWidget {
   State<OcrScreen> createState() => _OcrScreenState();
 }
 
-class _OcrScreenState extends State<OcrScreen> {
+class _OcrScreenState extends State<OcrScreen>
+    with TickerProviderStateMixin {
+  // Animation controllers
+  late AnimationController _entranceController;
+  late Animation<double> _contentAnimation;
+
   static const bool _allowGuestTesting = true;
   File? _selectedFile;
   String? _selectedFileName;
@@ -23,6 +28,28 @@ class _OcrScreenState extends State<OcrScreen> {
   bool _isProcessing = false;
   String? _summaryResult;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAnimations();
+  }
+
+  void _setupAnimations() {
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _contentAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+
+    _entranceController.forward();
+  }
 
   // Pick file (images, PDFs, DOCs)
   Future<void> _pickFile() async {
@@ -63,8 +90,8 @@ class _OcrScreenState extends State<OcrScreen> {
       final accessToken = await _secureStorage.read(key: 'accessToken');
       final isGuest = await _secureStorage.read(key: 'is_guest');
       
-      // Check if user is guest
-      if (isGuest == 'true') {
+      // Check if user is guest (allow if _allowGuestTesting is true)
+      if (isGuest == 'true' && !_allowGuestTesting) {
         _showError("This feature is not available for guest users. Please sign up to use Document Analyzer.");
         setState(() => _isProcessing = false);
         return;
@@ -109,6 +136,9 @@ class _OcrScreenState extends State<OcrScreen> {
             _summaryResult = data['data']['summary'] ?? "No summary available";
             _isProcessing = false;
           });
+          // Trigger animation for summary result
+          _entranceController.reset();
+          _entranceController.forward();
         } else {
           setState(() {
             _errorMessage = data['error'] ?? "Failed to process document";
@@ -142,6 +172,7 @@ class _OcrScreenState extends State<OcrScreen> {
 
   @override
   void dispose() {
+    _entranceController.dispose();
     _queryController.dispose();
     super.dispose();
   }
@@ -153,17 +184,20 @@ class _OcrScreenState extends State<OcrScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: darkGreen,
+        backgroundColor: const Color(0xFF10300C),
+        elevation: 1,
+        toolbarHeight: 70,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Document Summarizer", style: TextStyle(color: Colors.white, fontSize: 18)),
-            Text("OCR + AI Summary", style: TextStyle(color: Colors.white70, fontSize: 12)),
-          ],
+        title: const Text(
+          'Scan Document',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: Colors.white,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -360,31 +394,47 @@ class _OcrScreenState extends State<OcrScreen> {
 
             // Summary Result Display
             if (_summaryResult != null) ...[
-              const Divider(height: 40, thickness: 1),
-              const Text(
-                "Summary Result",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: darkGreen,
-                ),
-              ),
-              const SizedBox(height: 15),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: offWhite,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: SelectableText(
-                  _summaryResult!,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.6,
-                    color: Colors.black87,
-                  ),
+              AnimatedBuilder(
+                animation: _contentAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _contentAnimation.value,
+                    child: Transform.translate(
+                      offset: Offset(0, 20 * (1 - _contentAnimation.value)),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Column(
+                  children: [
+                    const Divider(height: 40, thickness: 1),
+                    const Text(
+                      "Summary Result",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: darkGreen,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: offWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: SelectableText(
+                        _summaryResult!,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          height: 1.6,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/template_models.dart';
 import 'template_preview_screen.dart';
 
-class TemplateDetailScreen extends StatelessWidget {
+class TemplateDetailScreen extends StatefulWidget {
   final DocumentTemplate template;
 
   const TemplateDetailScreen({
@@ -11,79 +11,148 @@ class TemplateDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<TemplateDetailScreen> createState() => _TemplateDetailScreenState();
+}
+
+class _TemplateDetailScreenState extends State<TemplateDetailScreen>
+    with TickerProviderStateMixin {
+  // Color Constants - Accessible to all methods
+  static const Color primaryGreen = Color(0xFF10300C);
+  static const Color offWhite = Color(0xFFF8F9F9);
+
+
+  // Animation controllers
+  late AnimationController _entranceController;
+  late Animation<double> _contentAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAnimations();
+  }
+
+  void _setupAnimations() {
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _contentAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+
+    _entranceController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: offWhite,
       appBar: AppBar(
-        title: const Text("Template Details"),
-        backgroundColor: const Color(0xFF004B23),
+        backgroundColor: primaryGreen,
+        elevation: 1,
+        toolbarHeight: 70,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Template Details',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Template Title
-              Text(
-                template.title,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF004B23),
-                ),
+        child: AnimatedBuilder(
+          animation: _contentAnimation,
+          builder: (context, child) {
+            return Opacity(
+              opacity: _contentAnimation.value,
+              child: Transform.translate(
+                offset: Offset(0, 20 * (1 - _contentAnimation.value)),
+                child: child,
               ),
-              const SizedBox(height: 8),
-              
-              // Description Section
-              _buildSectionCard(
-                title: 'About This Template',
-                child: Text(
-                  template.description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                    height: 1.5,
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Template Title
+                Text(
+                  widget.template.title,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: primaryGreen,
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Fields Summary
-              _buildSectionCard(
-                title: 'Fields to Fill (${template.fields.length})',
-                child: Column(
-                  children: [
-                    ..._buildFieldsList(),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Preview Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TemplatePreviewScreen(template: template),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.preview),
-                  label: const Text('Preview Template'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF004B23),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 8),
+                
+                // Description Section
+                _buildSectionCard(
+                  title: 'About This Template',
+                  child: Text(
+                    widget.template.description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      height: 1.5,
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                
+                // Fields Summary
+                _buildSectionCard(
+                  title: 'Fields to Fill (${widget.template.fields.length})',
+                  child: Column(
+                    children: [
+                      ..._buildFieldsList(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Preview Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TemplatePreviewScreen(template: widget.template),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.preview),
+                    label: const Text('Preview Template'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -102,7 +171,7 @@ class TemplateDetailScreen extends StatelessWidget {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF004B23),
+            color: primaryGreen,
           ),
         ),
         const SizedBox(height: 12),
@@ -121,7 +190,7 @@ class TemplateDetailScreen extends StatelessWidget {
     // Group fields by section
     final Map<String?, List<TemplateField>> groupedFields = {};
     
-    for (var field in template.fields) {
+    for (var field in widget.template.fields) {
       final section = field.section ?? 'General';
       if (!groupedFields.containsKey(section)) {
         groupedFields[section] = [];
@@ -144,7 +213,7 @@ class TemplateDetailScreen extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF004B23),
+                  color: Color(0xFF10300C),
                 ),
               ),
             ),

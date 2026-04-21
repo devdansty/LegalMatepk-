@@ -22,7 +22,12 @@ class DocumentPreviewScreen extends StatefulWidget {
   State<DocumentPreviewScreen> createState() => _DocumentPreviewScreenState();
 }
 
-class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
+class _DocumentPreviewScreenState extends State<DocumentPreviewScreen>
+    with TickerProviderStateMixin {
+  // Animation controllers
+  late AnimationController _entranceController;
+  late Animation<double> _contentAnimation;
+
   bool _showFieldValues = false;
   bool _isDownloading = false;
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
@@ -30,8 +35,31 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
     _initializeNotifications();
     _requestNotificationPermission();
+  }
+
+  void _setupAnimations() {
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _contentAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+
+    _entranceController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
   }
 
   Future<void> _requestNotificationPermission() async {
@@ -197,15 +225,30 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
         return true;
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9F9),
         appBar: AppBar(
-          title: const Text("Document Preview"),
-          backgroundColor: const Color(0xFF004B23),
+          backgroundColor: const Color(0xFF10300C),
+          elevation: 1,
+          toolbarHeight: 70,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Generated Document',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+              color: Colors.white,
+            ),
+          ),
           actions: [
             // Toggle field values view
             IconButton(
               icon: Icon(_showFieldValues
                   ? Icons.visibility_off
-                  : Icons.visibility),
+                  : Icons.visibility,
+                  color: Colors.white),
               tooltip: _showFieldValues
                   ? 'Hide filled values'
                   : 'Show filled values',
@@ -213,6 +256,9 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                 setState(() {
                   _showFieldValues = !_showFieldValues;
                 });
+                // Trigger animation on toggle
+                _entranceController.reset();
+                _entranceController.forward();
               },
             ),
           ],
@@ -222,7 +268,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
             // Document Info
             Container(
               padding: const EdgeInsets.all(16),
-              color: const Color(0xFF004B23).withOpacity(0.05),
+              color: const Color(0xFF10300C).withOpacity(0.08),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -231,7 +277,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF004B23),
+                      color: Color(0xFF10300C),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -269,6 +315,9 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                           setState(() {
                             _showFieldValues = false;
                           });
+                          // Trigger animation on tab switch
+                          _entranceController.reset();
+                          _entranceController.forward();
                         },
                         child: Container(
                           padding: const EdgeInsets.all(16),
@@ -301,6 +350,9 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                           setState(() {
                             _showFieldValues = true;
                           });
+                          // Trigger animation on tab switch
+                          _entranceController.reset();
+                          _entranceController.forward();
                         },
                         child: Container(
                           padding: const EdgeInsets.all(16),
@@ -334,9 +386,21 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
               child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: _showFieldValues
-                      ? _buildFieldValuesList()
-                      : _buildPreviewContent(),
+                  child: AnimatedBuilder(
+                    animation: _contentAnimation,
+                    builder: (context, child) {
+                      return Opacity(
+                        opacity: _contentAnimation.value,
+                        child: Transform.translate(
+                          offset: Offset(0, 20 * (1 - _contentAnimation.value)),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: _showFieldValues
+                        ? _buildFieldValuesList()
+                        : _buildPreviewContent(),
+                  ),
                 ),
               ),
             ),

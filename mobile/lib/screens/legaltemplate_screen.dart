@@ -11,7 +11,17 @@ class DocumentAutomationScreen extends StatefulWidget {
       _DocumentAutomationScreenState();
 }
 
-class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
+class _DocumentAutomationScreenState extends State<DocumentAutomationScreen>
+    with TickerProviderStateMixin {
+  // Color Constants
+  static const Color primaryGreen = Color(0xFF10300C);
+  static const Color offWhite = Color(0xFFF8F9F9);
+  static const Color darkGreen = Color(0xFF004B23);
+
+  // Animation controllers
+  late AnimationController _entranceController;
+  late List<Animation<double>> _cardAnimations;
+
   final TextEditingController _searchController = TextEditingController();
   
   List<DocumentTemplate> _allTemplates = [];
@@ -28,8 +38,32 @@ class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
     _loadTemplates();
     _loadCategories();
+  }
+
+  void _setupAnimations() {
+    _entranceController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _cardAnimations = List.generate(
+      10,
+      (index) => Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(
+          parent: _entranceController,
+          curve: Interval(
+            0.1 + (index * 0.05),
+            0.6 + (index * 0.05),
+            curve: Curves.easeOut,
+          ),
+        ),
+      ),
+    );
+
+    _entranceController.forward();
   }
 
   Future<void> _loadTemplates({String? category}) async {
@@ -100,16 +134,29 @@ class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: offWhite,
       appBar: AppBar(
-        title: const Text("Document Generator"),
-        backgroundColor: const Color(0xFF004B23),
-        elevation: 0,
+        backgroundColor: primaryGreen,
+        elevation: 1,
+        toolbarHeight: 70,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Legal Templates',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: Column(
         children: [
           // Search and Filter Section
           Container(
-            color: const Color(0xFF004B23).withOpacity(0.1),
+            color: primaryGreen.withOpacity(0.08),
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
@@ -189,7 +236,7 @@ class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
         label: Text(label),
         selected: isSelected,
         onSelected: (_) => onTap(),
-        selectedColor: const Color(0xFF004B23),
+        selectedColor: darkGreen,
         labelStyle: TextStyle(
           color: isSelected ? Colors.white : Colors.black,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -204,7 +251,14 @@ class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
       itemCount: _filteredTemplates.length,
       itemBuilder: (context, index) {
         final template = _filteredTemplates[index];
-        return _buildTemplateCard(template);
+        final animation = index < _cardAnimations.length
+            ? _cardAnimations[index]
+            : AlwaysStoppedAnimation<double>(1.0);
+
+        return FadeAndSlideUp(
+          animation: animation,
+          child: _buildTemplateCard(template),
+        );
       },
     );
   }
@@ -233,7 +287,7 @@ class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF004B23),
+                  color: darkGreen,
                 ),
               ),
               const SizedBox(height: 8),
@@ -259,11 +313,10 @@ class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
                       children: [
                         Chip(
                           label: Text(template.category),
-                          backgroundColor:
-                              const Color(0xFF004B23).withOpacity(0.2),
+                          backgroundColor: darkGreen.withOpacity(0.2),
                           labelStyle: const TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF004B23),
+                            color: darkGreen,
                           ),
                         ),
                       ],
@@ -349,7 +402,7 @@ class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF004B23),
+              backgroundColor: darkGreen,
             ),
           ),
         ],
@@ -360,6 +413,36 @@ class _DocumentAutomationScreenState extends State<DocumentAutomationScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _entranceController.dispose();
     super.dispose();
+  }
+}
+
+// Custom animation widget for fade and slide up effect
+class FadeAndSlideUp extends StatelessWidget {
+  final Animation<double> animation;
+  final Widget child;
+
+  const FadeAndSlideUp({
+    required this.animation,
+    required this.child,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: animation.value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - animation.value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
   }
 }
