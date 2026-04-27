@@ -110,12 +110,36 @@ export const handleDocumentSummarization = async (req, res) => {
 
     console.log(`[OCR Controller] Text extraction successful. Extracted ${ocrResponse.extracted_text.length} characters`);
 
-    // Step 2: Summarize the extracted text with the shared Python model service
-    console.log("[OCR Controller] Step 2: Calling summarization service...");
-    const summaryResponse = await callQwen2Model(
-      ocrResponse.extracted_text,
-      isDefaultQuery ? null : query
-    );
+    // Step 2: Check for duplicate documents (same text) to avoid redundant API calls
+    console.log("[OCR Controller] Step 2: Checking for duplicate documents...");
+    const duplicateOCR = await OCRResult.findOne({
+      "extracted_text.raw_text": ocrResponse.extracted_text,
+      "summary.summarization_status": "success"  // Only use if summary was successful
+    }).select("file_info.original_filename summary extracted_text processing_metadata");
+
+    let summaryResponse;
+    let usedDuplicate = false;
+
+    if (duplicateOCR) {
+      console.log(`[OCR Controller] ✅ Found duplicate document! Filename: ${duplicateOCR.file_info.original_filename}`);
+      console.log(`[OCR Controller] Reusing summary from DB instead of calling model again`);
+      
+      summaryResponse = {
+        summarized_text: duplicateOCR.summary.summarized_text,
+        status: "success",
+        response_time_ms: 0,  // No API call made
+        raw_response: { reused_from_duplicate: true }
+      };
+      usedDuplicate = true;
+    } else {
+      // No duplicate found, call Qwen2 model
+      console.log("[OCR Controller] No duplicate found. Calling Qwen2 model for summarization...");
+      summaryResponse = await callQwen2Model(
+        ocrResponse.extracted_text,
+        isDefaultQuery ? null : query,
+        ocrResponse.language || "unknown"
+      );
+    }
 
     const finalQuery = isDefaultQuery ? getDefaultQuery() : query;
     const totalProcessingTime =
@@ -159,7 +183,9 @@ export const handleDocumentSummarization = async (req, res) => {
         ocr_service_response_time_ms: ocrResponse.response_time_ms,
         summarization_service_response_time_ms:
           summaryResponse.response_time_ms || null,
-        total_processing_time_ms: totalProcessingTime
+        total_processing_time_ms: totalProcessingTime,
+        used_duplicate_summary: usedDuplicate,  // Track if summary was from duplicate
+        duplicate_source_id: usedDuplicate ? duplicateOCR._id : null  // Link to original document
       }
     });
     await ocrResult.save();
@@ -197,7 +223,9 @@ export const handleDocumentSummarization = async (req, res) => {
     // Return successful response
     res.status(200).json({
       success: true,
-      message: "Document processed successfully",
+      message: usedDuplicate 
+        ? "Document processed successfully (summary reused from duplicate)"
+        : "Document processed successfully",
       data: {
         ocrResultId: ocrResult._id,
         extractedText: ocrResult.summary.summarized_text,
@@ -206,6 +234,9 @@ export const handleDocumentSummarization = async (req, res) => {
         summarizedText: ocrResult.summary.summarized_text,
         query: finalQuery,
         wasDefaultQuery: isDefaultQuery,
+        usedDuplicateSummary: usedDuplicate,  // Indicate if summary was from duplicate
+        duplicateSourceId: usedDuplicate ? duplicateOCR._id : null,  // Link to original
+        duplicateSourceFilename: usedDuplicate ? duplicateOCR.file_info.original_filename : null,  // Show which file was duplicated
         confidenceScore: ocrResult.extracted_text.confidence_score,
         stage: "ocr_and_summary",
         processingTime: {

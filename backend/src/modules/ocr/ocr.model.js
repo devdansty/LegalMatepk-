@@ -55,7 +55,9 @@ const OCRResultSchema = new Schema({
   processing_metadata: {
     ocr_service_response_time_ms: { type: Number, default: null },
     summarization_service_response_time_ms: { type: Number, default: null },
-    total_processing_time_ms: { type: Number, default: null }
+    total_processing_time_ms: { type: Number, default: null },
+    used_duplicate_summary: { type: Boolean, default: false },  // Whether summary was reused from duplicate
+    duplicate_source_id: { type: mongoose.Schema.Types.ObjectId, ref: "OCRResult", default: null }  // Link to original OCR document
   },
 
   created_at: { type: Date, default: Date.now, index: true },
@@ -65,5 +67,11 @@ const OCRResultSchema = new Schema({
 
 // Index for user's OCR results
 OCRResultSchema.index({ user_id: 1, created_at: -1 });
+
+// Index for duplicate detection by raw text (faster lookups)
+OCRResultSchema.index({ "extracted_text.raw_text": 1 });
+
+// Index for finding successful summaries
+OCRResultSchema.index({ "summary.summarization_status": 1 });
 
 export default mongoose.model("OCRResult", OCRResultSchema);
