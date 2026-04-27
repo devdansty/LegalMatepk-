@@ -1,10 +1,11 @@
 from fastapi import FastAPI
-from routes.ocr import router as ocr_router
 from dotenv import load_dotenv
 import os
 
 # Load environment variables from .env file
 load_dotenv()
+
+from routes.ocr import router as ocr_router
 
 app = FastAPI(
     title="LegalMate OCR Service",
