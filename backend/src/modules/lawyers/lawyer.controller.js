@@ -6,6 +6,7 @@ import validator from "validator";
 import Lawyer from "./lawyer.model.js";
 import User from "../users/user.model.js";
 import Connection from "./connection.model.js";
+import { setAndSendEmailOtp } from "../users/user.controller.js";
 
 const ALLOWED_SPECIALIZATIONS = [
   "family",
@@ -174,12 +175,12 @@ export const lawyerSignup = async (req, res) => {
       });
     }
 
-    // Check if files were uploaded
-    if (!req.files || !req.files.cnic_file || !req.files.license_file) {
+    // Check required file uploads (cnic_front and license_file are mandatory)
+    if (!req.files || !req.files.cnic_front || !req.files.license_file) {
       return res.status(400).json({ 
         success: false,
         error: "Missing document uploads",
-        details: "Both CNIC and License files are required"
+        details: "CNIC front photo and License file are required"
       });
     }
 
@@ -236,7 +237,8 @@ export const lawyerSignup = async (req, res) => {
 
     await user.save();
 
-    console.log(`[Lawyer Signup] Created user: ${user._id}`);
+    // Send OTP for email verification (same flow as citizen signup)
+    await setAndSendEmailOtp(user);
 
     // ===== CREATE LAWYER PROFILE =====
     
@@ -246,11 +248,13 @@ export const lawyerSignup = async (req, res) => {
       email: email.toLowerCase(),
       phone,
       cnic,
-      cnic_file: req.files.cnic_file.data, // Binary data
-      cnic_filename: req.files.cnic_file.name,
+      cnic_file: req.files.cnic_front.data,
+      cnic_filename: req.files.cnic_front.name,
+      cnic_back_file: req.files.cnic_back?.data || null,
+      cnic_back_filename: req.files.cnic_back?.name || null,
       enrollment_number,
       bar_council,
-      license_file: req.files.license_file.data, // Binary data
+      license_file: req.files.license_file.data,
       license_filename: req.files.license_file.name,
       specialization: normalizedSpecialization,
       city,
@@ -264,16 +268,11 @@ export const lawyerSignup = async (req, res) => {
 
     await lawyer.save();
 
-    console.log(`[Lawyer Signup] Created lawyer profile: ${lawyer._id}`);
-
-    // ===== RETURN RESPONSE =====
-    
-    // Generate JWT token for immediate login (if desired)
-    const accessToken = signJwt(user._id);
-
     res.status(201).json({
       success: true,
-      message: "Lawyer registered successfully.",
+      message: "Application submitted. Please verify the OTP sent to your email before logging in.",
+      requires_email_verification: true,
+      email: user.email,
       data: {
         user: {
           id: user._id,
@@ -283,11 +282,8 @@ export const lawyerSignup = async (req, res) => {
         },
         lawyer: {
           id: lawyer._id,
-          status: lawyer.status,
-          verified: lawyer.verified,
           applied_at: lawyer.created_at
         },
-        access_token: accessToken // Optional: can use for immediate login
       }
     });
 
