@@ -26,7 +26,7 @@ const UserSchema = new Schema({
   phone: { type: String, default: null, index: true, sparse: true },
   phone_verified: { type: Boolean, default: false },
   username: { type: String, unique: true, sparse: true },
-  password_hash: { type: String, required: true },
+  password_hash: { type: String, default: null },
 
   auth_providers: [{
     provider: String,
@@ -69,6 +69,9 @@ const UserSchema = new Schema({
 
   email_verify_token: { type: String, default: null },
   email_verify_expires_at: { type: Date, default: null },
+  email_otp_hash: { type: String, default: null },
+  email_otp_expires_at: { type: Date, default: null },
+  email_otp_attempts: { type: Number, default: 0 },
 
   schema_version: { type: String, default: "1.0" }
 });

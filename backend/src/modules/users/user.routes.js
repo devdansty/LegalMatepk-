@@ -14,11 +14,25 @@ router.post("/signup", [
 // Temporary guest citizen login for testing
 router.post("/dev-guest-login", userCtrl.devGuestLogin);
 
+// Google OAuth
+router.post("/google-auth", userCtrl.googleAuth);
+
 // Signin
 router.post("/signin", [
   body("email").isEmail(),
   body("password").exists()
 ], userCtrl.signin);
+
+// Send OTP for email verification
+router.post('/email-otp/send', [
+  body('email').isEmail().withMessage('Invalid email address')
+], userCtrl.sendEmailOtp);
+
+// Verify email OTP
+router.post('/email-otp/verify', [
+  body('email').isEmail().withMessage('Invalid email address'),
+  body('otp').isLength({ min: 4, max: 8 }).withMessage('Invalid OTP')
+], userCtrl.verifyEmailOtp);
 
 // Get profile
 router.get("/me", requireAuth(), userCtrl.getProfile);
@@ -26,8 +40,14 @@ router.get("/me", requireAuth(), userCtrl.getProfile);
 // Update profile
 router.put("/me", requireAuth(), userCtrl.updateProfile);
 
-// Change password
+// Change password (requires old password)
 router.post("/change-password", requireAuth(), userCtrl.changePassword);
+
+// OTP-based password change (step 1: send OTP to own email)
+router.post("/send-change-password-otp", requireAuth(), userCtrl.sendChangePasswordOtp);
+
+// OTP-based password change (step 2: verify OTP + set new password)
+router.post("/change-password-otp", requireAuth(), userCtrl.changePasswordViaOtp);
 
 // Password reset request
 router.post("/password-reset/request", userCtrl.requestPasswordReset);
