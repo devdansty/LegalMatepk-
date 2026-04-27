@@ -22,6 +22,6 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`[SERVER_DEBUG] OCR_ALLOW_GUEST_TEST env value: "${process.env.OCR_ALLOW_GUEST_TEST}"`);
-  console.log(`[SERVER_DEBUG] Type: ${typeof process.env.OCR_ALLOW_GUEST_TEST}`);
+  // console.log(`[SERVER_DEBUG] OCR_ALLOW_GUEST_TEST env value: "${process.env.OCR_ALLOW_GUEST_TEST}"`);
+  // console.log(`[SERVER_DEBUG] Type: ${typeof process.env.OCR_ALLOW_GUEST_TEST}`);
 });
