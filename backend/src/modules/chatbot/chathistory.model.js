@@ -22,7 +22,7 @@ const ChatHistorySchema = new mongoose.Schema({
   
   session_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: "Session",
+    ref: "ChatSession",
     index: true 
   },
   
@@ -36,5 +36,6 @@ const ChatHistorySchema = new mongoose.Schema({
 // Index for faster user history retrieval
 ChatHistorySchema.index({ user: 1, created_at: -1 });
 ChatHistorySchema.index({ user: 1, is_guest: 1 });
+ChatHistorySchema.index({ user: 1, session_id: 1, created_at: 1 });
 
 export default mongoose.models.ChatHistory || mongoose.model("ChatHistory", ChatHistorySchema);
