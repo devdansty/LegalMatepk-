@@ -213,7 +213,7 @@ export const callQwen2Model = async (extractedText, userQuery = null, detectedLa
       
       response.data.on('data', (chunk) => {
         fullResponse += chunk.toString();
-        console.log(`[Qwen2 Model] Received chunk: ${chunk.toString().substring(0, 50)}...`);
+        // console.log(`[Qwen2 Model] Received chunk: ${chunk.toString().substring(0, 50)}...`);
       });
       
       response.data.on('end', () => {
@@ -297,6 +297,7 @@ export const isSupportedFileType = (mimeType) => {
     "image/jpeg",
     "image/jpg",
     "image/png",
+    "application/pdf",
     "application/octet-stream" // Accept generic type (extension validated by multer)
   ];
   return supported.includes(mimeType);

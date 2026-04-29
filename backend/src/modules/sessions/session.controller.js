@@ -93,6 +93,9 @@ export const refreshAccessToken = async (req, res) => {
 
     if (!matchedSession) return res.status(401).json({ error: "Invalid refresh token" });
 
+    // Ensure user exists (account might have been deleted)
+    if (!matchedSession.user) return res.status(401).json({ error: "User account no longer exists" });
+
     // Create a new access token containing the session id (sid)
     const newAccessToken = generateAccessToken(matchedSession.user.toString(), matchedSession._id.toString());
     res.json({ accessToken: newAccessToken });

@@ -21,10 +21,11 @@ const upload = multer({
       "image/jpeg",
       "image/jpg",
       "image/png",
+      "application/pdf",
       "application/octet-stream" // Allow generic type, will validate by extension
     ];
 
-    const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf'];
     const fileExtension = file.originalname.toLowerCase().match(/\.[^.]*$/)?.[0];
 
     const validMime = allowedMimes.includes(file.mimetype);
@@ -33,7 +34,7 @@ const upload = multer({
     if (validMime && validExtension) {
       cb(null, true);
     } else {
-      cb(new Error(`File type not supported. Allowed: JPG, JPEG, PNG (received: ${file.mimetype}, ${fileExtension})`));
+      cb(new Error(`File type not supported. Allowed: PDF, JPG, JPEG, PNG (received: ${file.mimetype}, ${fileExtension})`));
     }
   }
 });

@@ -265,11 +265,11 @@ export const handleChat = async (req, res) => {
         });
 
         // Error event
-        pythonStream.on("error", (streamError) => {
+        pythonStream.on("error", (err) => {
           streamError = true;
           clearTimeout(timeoutHandle);
-          // console.error(`[Chatbot] Python stream error: ${streamError.message}`);
-          // console.error(`[Chatbot] Error details:`, streamError);
+          // console.error(`[Chatbot] Python stream error: ${err.message}`);
+          // console.error(`[Chatbot] Error details:`, err);
 
           if (!streamEnded && !res.writableEnded) {
             _sendSseEvent(res, {

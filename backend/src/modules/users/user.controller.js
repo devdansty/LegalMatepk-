@@ -6,6 +6,11 @@ import validator from "validator";
 
 import User from "./user.model.js";
 import Session from "../sessions/session.model.js";
+import Lawyer from "../lawyers/lawyer.model.js";
+import Connection from "../lawyers/connection.model.js";
+import ChatSession from "../chatbot/chatsession.model.js";
+import ChatHistory from "../chatbot/chathistory.model.js";
+import OCRRecord from "../ocr/ocr.model.js";
 import { sendOtpEmail } from "../../shared/services/email.service.js";
 import { OAuth2Client } from "google-auth-library";
 
@@ -91,12 +96,12 @@ const signup = async (req, res) => {
       return res.status(400).json({ error: errorMsg });
     }
 
-   const { email, password, display_name, username, preferred_language, phone, role } = req.body;
-    
+    const { email, password, display_name, username, preferred_language, phone, role } = req.body;
+
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
-    
+
     if (!validator.isEmail(email)) return res.status(400).json({ error: 'Invalid email' });
 
     const exists = await User.findOne({ email: email.toLowerCase() });
@@ -108,7 +113,7 @@ const signup = async (req, res) => {
       email: email.toLowerCase(),
       password_hash: hash,
       username: username || undefined,
-      phone: phone || null, 
+      phone: phone || null,
       profile: { display_name: display_name || "" },
       preferred_language: preferred_language || 'ur',
       consent: { tos_accepted: true, tos_accepted_at: new Date() },
@@ -120,7 +125,7 @@ const signup = async (req, res) => {
 
     await setAndSendEmailOtp(user);
 
-    res.status(201).json({ 
+    res.status(201).json({
       user: { id: user._id, email: user.email, is_guest: user.is_guest },
       requires_email_verification: true,
       message: 'Signup successful. Verify OTP sent to email.'
@@ -151,6 +156,11 @@ const signin = async (req, res) => {
         email: user.email,
         message: 'Please verify OTP sent to your email before login.'
       });
+    }
+
+    // Fix legacy role data to prevent Mongoose validation errors
+    if (!['citizen', 'lawyer', 'admin', 'guest'].includes(user.role)) {
+      user.role = 'citizen';
     }
 
     user.last_login_at = new Date();
@@ -317,27 +327,49 @@ const googleAuth = async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Google account has no email' });
 
     const displayName = name || `${given_name || ''} ${family_name || ''}`.trim() || email.split('@')[0];
+    const { is_signup, role } = req.body;
 
-    // Check if user exists — do NOT auto-create
+    // Check if user exists
     let user = await User.findOne({ email: email.toLowerCase() });
     // console.log('[GOOGLE_AUTH] User in DB:', user ? `found (${user._id})` : 'not found');
 
     if (!user) {
-      // Return a structured "not found" response so the client can offer registration
-      return res.status(404).json({
-        code: 'USER_NOT_FOUND',
-        error: 'No account found for this Google address. Please create one.',
-        google_display_name: displayName,
-        google_email: email,
-      });
+      if (is_signup) {
+        // Auto-create user since they are on the signup screen
+        user = new User({
+          email: email.toLowerCase(),
+          profile: { display_name: displayName, avatar_url: picture || null },
+          is_guest: false,
+          role: role === "lawyer" ? "lawyer" : "citizen",
+          email_verified: true, // Google emails are already verified
+          auth_providers: [{ provider: 'google', provider_id: googleId, linked_at: new Date() }],
+          consent: { tos_accepted: true, tos_accepted_at: new Date() },
+          last_login_at: new Date()
+        });
+        await user.save();
+      } else {
+        // Return a structured "not found" response for login screen
+        return res.status(404).json({
+          code: 'USER_NOT_FOUND',
+          error: 'No account found for this Google address. Please create one.',
+          google_display_name: displayName,
+          google_email: email,
+        });
+      }
+    } else {
+      // Existing user — link Google provider if not already linked
+      const alreadyLinked = user.auth_providers?.some(p => p.provider === 'google');
+      if (!alreadyLinked) {
+        user.auth_providers = user.auth_providers || [];
+        user.auth_providers.push({ provider: 'google', provider_id: googleId, linked_at: new Date() });
+      }
     }
 
-    // Existing user — link Google provider if not already linked
-    const alreadyLinked = user.auth_providers?.some(p => p.provider === 'google');
-    if (!alreadyLinked) {
-      user.auth_providers = user.auth_providers || [];
-      user.auth_providers.push({ provider: 'google', provider_id: googleId, linked_at: new Date() });
+    // Fix legacy role data to prevent Mongoose validation errors
+    if (!['citizen', 'lawyer', 'admin', 'guest'].includes(user.role)) {
+      user.role = 'citizen';
     }
+
     user.email_verified = true;
     user.last_login_at = new Date();
     await user.save();
@@ -404,6 +436,8 @@ const changePassword = async (req, res) => {
     if (!old_password || !new_password) return res.status(400).json({ error: 'Missing fields' });
 
     const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
     const match = await argon2.verify(user.password_hash, old_password);
     if (!match) return res.status(401).json({ error: 'Old password incorrect' });
 
@@ -516,6 +550,41 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // 1. Delete Lawyer Profile (if any) and its connections
+    const lawyer = await Lawyer.findOne({ user: userId });
+    if (lawyer) {
+      // Delete all connections where this lawyer is involved
+      await Connection.deleteMany({ lawyer: lawyer._id });
+      await Lawyer.findByIdAndDelete(lawyer._id);
+    }
+
+    // 2. Delete all connections where this user is the "client"
+    await Connection.deleteMany({ user: userId });
+
+    // 3. Delete Chatbot history
+    await ChatSession.deleteMany({ user: userId });
+    await ChatHistory.deleteMany({ user: userId });
+
+    // 4. Delete OCR records
+    await OCRRecord.deleteMany({ user: userId });
+
+    // 5. Delete all sessions for this user
+    await Session.deleteMany({ user: userId });
+
+    // 6. Finally delete the User document
+    await User.findByIdAndDelete(userId);
+
+    res.json({ ok: true, message: 'Account deleted successfully' });
+  } catch (err) {
+    console.error('[DELETE_ACCOUNT_ERROR]', err.message);
+    res.status(500).json({ error: 'Server error during account deletion' });
+  }
+};
+
 export default {
   devGuestLogin,
   signup,
@@ -531,4 +600,5 @@ export default {
   resetPassword,
   googleAuth,
   setAndSendEmailOtp,
+  deleteAccount,
 };

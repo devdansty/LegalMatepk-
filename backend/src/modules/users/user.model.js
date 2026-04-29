@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { encryptField, decryptField, isEncrypted } from "../../shared/services/encryption.service.js";
 const { Schema } = mongoose;
 
 const ProfileSchema = new Schema({
@@ -23,8 +24,22 @@ const ConsentSchema = new Schema({
 const UserSchema = new Schema({
   email: { type: String, required: true, unique: true, lowercase: true, index: true },
   email_verified: { type: Boolean, default: false },
-  phone: { type: String, default: null, index: true, sparse: true },
+  phone: { 
+    type: String, 
+    default: null, 
+    index: true, 
+    sparse: true,
+    set: (value) => value ? encryptField(value) : null,
+    get: (value) => value ? decryptField(value) : null
+  },
   phone_verified: { type: Boolean, default: false },
+  cnic: {
+    type: String,
+    default: null,
+    sparse: true,
+    set: (value) => value ? encryptField(value) : null,
+    get: (value) => value ? decryptField(value) : null
+  },
   username: { type: String, unique: true, sparse: true },
   password_hash: { type: String, default: null },
 
@@ -74,10 +89,10 @@ const UserSchema = new Schema({
   email_otp_attempts: { type: Number, default: 0 },
 
   schema_version: { type: String, default: "1.0" }
+}, {
+  toJSON: { getters: true },
+  toObject: { getters: true }
 });
-
-// indexes
-UserSchema.index({ email: 1 });
 
 // prevent overwrite error
 export default mongoose.models.User || mongoose.model("User", UserSchema);

@@ -64,13 +64,13 @@ export const handleDocumentSummarization = async (req, res) => {
 
     console.log(`[OCR Controller] Validating file type: ${req.file.mimetype}`);
 
-    // Validate file type (Python OCR currently supports image files)
+    // Validate file type (Python OCR supports PDF and image files)
     if (!isSupportedFileType(req.file.mimetype)) {
       console.log(`[OCR Controller] File type validation FAILED: ${req.file.mimetype}`);
       return res.status(400).json({
         success: false,
         error: "Unsupported file type",
-        details: `File type ${req.file.mimetype} is not supported. Supported types: JPG, JPEG, PNG`
+        details: `File type ${req.file.mimetype} is not supported. Supported types: PDF, JPG, JPEG, PNG`
       });
     }
 

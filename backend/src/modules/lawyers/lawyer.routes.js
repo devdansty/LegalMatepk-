@@ -1,6 +1,7 @@
 import express from "express";
 import fileUpload from "express-fileupload";
 import { requireAuth, authIfPresent, requireNotGuest } from "../../shared/middleware/auth.js";
+import { authLimiter } from "../../shared/middleware/rateLimit.js";
 import {
   devLawyerLogin,
   lawyerSignup,
@@ -32,14 +33,14 @@ router.use(fileUpload({
  * POST /api/lawyers/dev-login
  * Temporary test-only lawyer login using the first approved lawyer
  */
-router.post("/dev-login", devLawyerLogin);
+router.post("/dev-login", authLimiter, devLawyerLogin);
 
 /**
  * POST /api/lawyers/signup
  * Lawyer registration - creates user account and lawyer profile
  * Requires: multipart/form-data with files and text fields
  */
-router.post("/signup", lawyerSignup);
+router.post("/signup", authLimiter, lawyerSignup);
 
 /**
  * GET /api/lawyers
