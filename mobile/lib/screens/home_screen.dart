@@ -432,28 +432,28 @@ class _LegalMateHomeState extends State<LegalMateHome>
                           children: [
                             _buildServiceCard(
                               index: 0,
-                              icon: Icons.psychology_outlined,
+                              icon: Icons.psychology,
                               title: 'Ask AI Lawyer',
                               subtitle: 'Instant legal help',
                               onTap: () => _navigateTo(const ChatBotPage()),
                             ),
                             _buildServiceCard(
                               index: 1,
-                              icon: Icons.document_scanner_outlined,
+                              icon: Icons.document_scanner,
                               title: 'Scan Document',
                               subtitle: 'Understand any paper',
                               onTap: () => _navigateTo(const OcrScreen()),
                             ),
                             _buildServiceCard(
                               index: 2,
-                              icon: Icons.handshake_outlined,
+                              icon: Icons.handshake,
                               title: 'Find a Lawyer',
                               subtitle: 'Verified lawyers',
                               onTap: _openLawyerConnect,
                             ),
                             _buildServiceCard(
                               index: 3,
-                              icon: Icons.description_outlined,
+                              icon: Icons.description,
                               title: 'Create Document',
                               subtitle: 'Legal documents',
                               onTap: () => _navigateTo(const DocumentAutomationScreen()),
