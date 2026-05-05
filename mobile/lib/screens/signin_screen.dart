@@ -609,25 +609,6 @@ class _SignInScreenState extends State<SignInScreen>
                         ),
                       ),
                     ),
-                    Center(
-                      child: TextButton(
-                        onPressed: () => _quickLoginAsRole("lawyer"),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text(
-                          "Test Lawyer Account",
-                          style: TextStyle(
-                            color: Color(0xFF999999),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 8),
                   ],
                 ),
