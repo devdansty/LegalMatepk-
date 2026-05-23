@@ -1,4 +1,4 @@
-# LegalMate — AI-Powered Legal Assistant for Pakistan
+# LegalMate-AI-Powered Legal Assistant for Pakistan
 
 [![Flutter](https://img.shields.io/badge/Mobile-Flutter_3.7-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js_18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
