@@ -1,4 +1,4 @@
-# ⚖️ LegalMate.pk — AI-Powered Legal Assistant for Pakistan
+# LegalMate — AI-Powered Legal Assistant for Pakistan
 
 [![Flutter](https://img.shields.io/badge/Mobile-Flutter_3.7-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js_18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
@@ -10,7 +10,7 @@
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 
 - [Key Features](#-key-features)
 - [System Architecture](#-system-architecture)
@@ -29,7 +29,7 @@
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
 | Feature | Description |
 |---|---|
@@ -42,7 +42,7 @@
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -84,7 +84,7 @@
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Frontend (Mobile)
 | Technology | Purpose |
@@ -121,7 +121,7 @@
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 LegalMatepk-/
@@ -173,7 +173,7 @@ LegalMatepk-/
 
 ---
 
-## 🧩 Backend Modules Deep Dive
+##  Backend Modules Deep Dive
 
 ### 1. Users Module (`/api/users`)
 Complete authentication system with multi-provider support.
